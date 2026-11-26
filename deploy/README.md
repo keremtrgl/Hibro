@@ -16,6 +16,8 @@ Betik Docker'ı kurar, güvenlik duvarını açar, gerekirse swap ekler, `.env` 
 
 Güncellemek için: `./deploy/update.sh`
 
+Her şey çalışıyor mu? `./deploy/smoke.sh https://api.senin-alanadin.com`
+
 ---
 
 # Adım adım (elle kurulum)
