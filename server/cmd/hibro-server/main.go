@@ -60,7 +60,7 @@ func main() {
 	fc.Log = log
 	reg := city.NewRegistry()
 	reg.Log = log
-	cityList := env("HIBRO_CITIES", "izmir,konya,gaziantep,kocaeli")
+	cityList := env("HIBRO_CITIES", "izmir,konya,gaziantep,kocaeli,istanbul")
 	if cityList == "all" {
 		var ids []string
 		for id := range loaders {

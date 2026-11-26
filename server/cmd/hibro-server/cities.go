@@ -23,6 +23,7 @@ var loaders = map[string]loader{
 	"izmir":     loadIzmir,
 	"konya":     ckanCity(city.Meta{ID: "konya", Name: "Konya", Center: model.LatLon{37.8746, 32.4932}, Zoom: 12.5}, "k", "https://acikveri.konya.bel.tr", "toplu-tasima-gtfs-verileri", "Konya Büyükşehir Belediyesi", "CC BY 4.0"),
 	"kocaeli":   loadKocaeli,
+	"istanbul":  loadIstanbul,
 	"gaziantep": ckanCity(city.Meta{ID: "gaziantep", Name: "Gaziantep", Center: model.LatLon{37.0662, 37.3833}, Zoom: 12.5}, "g", "https://acikveri.gaziantep.bel.tr", "toplu-ulasim-gtfs-verileri", "Gaziantep Büyükşehir Belediyesi", "Gaziantep Açık Veri Lisansı"),
 }
 
@@ -128,9 +129,15 @@ func ckanLooseGTFS(ctx context.Context, fc *fetch.Client, portal, pkg string) ([
 				base += ".txt"
 			}
 		}
+		if !gtfsFiles[base] {
+			continue // data dictionaries, PDFs, previews...
+		}
 		b, err := fc.Cached(ctx, r.URL, staticMaxAge)
 		if err != nil {
-			return nil, time.Time{}, fmt.Errorf("%s: %w", base, err)
+			if requiredGTFS[base] {
+				return nil, time.Time{}, fmt.Errorf("%s: %w", base, err)
+			}
+			continue
 		}
 		files[base] = b.Data
 		fetched = b.FetchedAt
@@ -142,6 +149,48 @@ func ckanLooseGTFS(ctx context.Context, fc *fetch.Client, portal, pkg string) ([
 	}
 	z, err := gtfs.ZipFiles(files)
 	return z, fetched, err
+}
+
+var gtfsFiles = map[string]bool{
+	"agency.txt": true, "stops.txt": true, "routes.txt": true, "trips.txt": true, "stop_times.txt": true,
+	"calendar.txt": true, "calendar_dates.txt": true, "shapes.txt": true, "frequencies.txt": true,
+	"transfers.txt": true, "feed_info.txt": true, "fare_attributes.txt": true, "fare_rules.txt": true,
+	"translations.txt": true,
+}
+
+var requiredGTFS = map[string]bool{"stops.txt": true, "routes.txt": true, "trips.txt": true, "stop_times.txt": true}
+
+// ---- İstanbul: İBB open data (reachable from Türkiye only). Loads
+// whatever of İETT and the general public-transport GTFS is available. ----
+
+const ibbPortal = "https://data.ibb.gov.tr"
+
+func loadIstanbul(ctx context.Context, fc *fetch.Client) (*city.City, error) {
+	const lic = "İBB Açık Veri Lisansı"
+	var sources []city.Source
+	var errs []error
+	for _, d := range []struct{ prefix, pkg, name string }{
+		{"ist", "iett-gtfs-verisi", "İETT (otobüs)"},
+		{"isr", "public-transport-gtfs-data", "İBB toplu ulaşım GTFS"},
+	} {
+		z, at, err := ckanLooseGTFS(ctx, fc, ibbPortal, d.pkg)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("%s: %w", d.pkg, err))
+			continue
+		}
+		f, err := gtfs.Parse(z)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("%s: %w", d.pkg, err))
+			continue
+		}
+		info := model.SourceInfo{Name: d.name, License: lic, URL: ibbPortal + "/dataset/" + d.pkg, UpdatedAt: at}
+		markIfExpired(f, &info)
+		sources = append(sources, gtfs.NewSource(d.prefix, f, info))
+	}
+	if len(sources) == 0 {
+		return nil, fmt.Errorf("istanbul: no feed (data.ibb.gov.tr needs a Türkiye IP): %w", errors.Join(errs...))
+	}
+	return city.New(city.Meta{ID: "istanbul", Name: "İstanbul", Center: model.LatLon{41.0082, 28.9784}, Zoom: 11.5}, sources...), nil
 }
 
 const (
