@@ -33,7 +33,7 @@ flutter build appbundle --release --dart-define=HIBRO_API=https://api.geliyo.sit
 # çıktı: build/app/outputs/bundle/release/app-release.aab
 ```
 
-Her yeni sürümde `pubspec.yaml` içindeki `version: 0.4.0+4` değerinin `+` sonrasını artır.
+Her yeni sürümde `pubspec.yaml` içindeki `version` değerinin `+` sonrasını artır. Ayrıntılı ve güncel adımlar: [PLAY_YAYIN.md](PLAY_YAYIN.md).
 
 ## 3. Play Console
 
