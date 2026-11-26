@@ -17,6 +17,10 @@ check "Kocaeli"               "$B/v1/cities/kocaeli"                         '"s
 check "İstanbul (TR IP ile)"  "$B/v1/cities/istanbul"                        '"stopCount"'
 check "gizlilik sayfası"      "$B/gizlilik"                                  'Gizlilik'
 echo; echo "$pass başarılı, $fail başarısız"
-curl -s -m 30 "$B/v1/cities" | python3 -c 'import sys,json
-for c in json.load(sys.stdin): print(f"  {c[\"name\"]:<12} {c[\"stopCount\"]:>6} durak {c[\"lineCount\"]:>4} hat  canlı={c[\"features\"][\"liveArrivals\"]} rota={c[\"features\"][\"planner\"]}")' 2>/dev/null
+curl -s -m 30 "$B/v1/cities" | python3 -c '
+import sys, json
+for c in json.load(sys.stdin):
+    f = c["features"]
+    print("  %-12s %6d durak %4d hat  canlı=%s rota=%s" % (c["name"], c["stopCount"], c["lineCount"], f["liveArrivals"], f["planner"]))
+' 2>/dev/null
 [ "$fail" -eq 0 ]
