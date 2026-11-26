@@ -102,7 +102,12 @@ Ankara, Bursa, Antalya, Kocaeli, Kayseri ve diğerleri.
 
 - [ ] **Belediye görüşmeleri:** "GTFS yayınlarsanız ücretsiz, reklamsız uygulamanızda gösteririz." Ücretsiz GTFS danışmanlığı teklif edilir.
 - [x] **Kocaeli eklendi** (26.11.2026): güncel belediye GTFS'i (VPS'ten) + 2018 arşivi yedek, "eski veri" uyarısıyla
-- [ ] VPS'te güncel Kocaeli verisi inince `gtfsdiff` ile 2018'e göre değişimi ölç, sonucu buraya yaz
+- [x] Kocaeli 2018 → 2026 değişimi ölçüldü: duraklar %83 aynı, hatların %64'ü korunmuş ama bunların yalnızca %30'unun güzergâhı aynı (ayrıntı: VERI_KAYNAKLARI §1.1)
+- [x] **13 topluluk şehri eklendi** (Antalya, Adana, Muğla, Erzurum, Ordu, Düzce, Mardin, Çanakkale, Burdur, Osmaniye, Safranbolu, Kırklareli, Kastamonu): KentKart kaynaklı, Kasım 2026 tarifesi, "topluluk verisi" etiketiyle, `HIBRO_COMMUNITY=on`
+- [ ] **Yayından önce:** `kk-gtfs` veri lisansını ve KentKart/belediye iznini netleştir; olmazsa bu şehirleri kapat
+- [x] İzmir otobüs hatlarına durak sırası (ESHOT GTFS) ve İZBAN eklendi
+- [ ] İstanbul İETT GTFS (`data.ibb.gov.tr/dataset/iett-gtfs-verisi`) VPS'ten çekilip eklenecek
+- [ ] Şehirlerarası: Flixbus Türkiye ve Türkiye demiryolları GTFS'leri rota planlayıcıya
 - [ ] **KentKart ile resmi görüşme:** 27 şehirde (Adana, Antalya, Erzurum, Ordu, Düzce...) hat, durak ve canlı araç verisi onlarda. Anlaşma olursa tek adımda 27 şehir. `kk-gtfs` yaklaşımı **yalnızca izin alındıktan sonra** kullanılır
 - [ ] **Ankara:** OSM durakları (~2.700) + EGO'nun kamuya açık hat/sefer sayfalarından GTFS üretimi. Hat ilişkileri OSM'e topluluk katkısıyla eklenir.
 - [ ] Topluluk GTFS düzenleyici: gönüllülerin hat/durak düzeltmesi yapabileceği web aracı (moderasyonlu)

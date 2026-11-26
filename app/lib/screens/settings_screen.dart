@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../state/app_state.dart';
 import '../state/scope.dart';
 import 'privacy_screen.dart';
+import '../widgets/city_sheet.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -16,17 +17,14 @@ class SettingsScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Ayarlar')),
       body: ListView(children: [
         _section(t, 'Şehir'),
-        RadioGroup<String>(
-          groupValue: s.hasCity ? s.cityId : null,
-          onChanged: (v) => v == null ? null : s.selectCity(v),
-          child: Column(children: [
-            for (final c in s.cities)
-              RadioListTile<String>(
-                value: c.id,
-                title: Text(c.name),
-                subtitle: c.stopCount > 0 ? Text('${c.stopCount} durak · ${c.lineCount} hat${c.features.liveArrivals ? ' · canlı takip' : ''}') : null,
-              ),
-          ]),
+        ListTile(
+          leading: const Icon(Icons.location_city),
+          title: Text(s.hasCity ? s.city.name : 'Şehir seçilmedi'),
+          subtitle: Text(s.hasCity
+              ? '${s.city.stopCount} durak · ${s.city.lineCount} hat${s.city.isCommunity ? ' · topluluk verisi' : ''}'
+              : '${s.cities.length} şehir destekleniyor'),
+          trailing: const Text('Değiştir'),
+          onTap: () => showCitySheet(context),
         ),
         if (s.packUpdated != null)
           ListTile(
@@ -84,7 +82,7 @@ class SettingsScreen extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.dataset_outlined),
             title: Text(src.name),
-            subtitle: Text(src.license),
+            subtitle: Text([src.license, if (src.note.isNotEmpty) src.note].join('\n')),
             trailing: src.url.isEmpty ? null : const Icon(Icons.open_in_new, size: 18),
             onTap: src.url.isEmpty ? null : () => launchUrl(Uri.parse(src.url), mode: LaunchMode.externalApplication),
           ),

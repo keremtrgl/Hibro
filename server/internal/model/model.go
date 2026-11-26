@@ -148,6 +148,8 @@ type SourceInfo struct {
 	// to the user (e.g. "Veri 2018 tarihli...").
 	Stale bool   `json:"stale,omitempty"`
 	Note  string `json:"note,omitempty"`
+	// Unofficial marks community-generated data (not from the operator).
+	Unofficial bool `json:"unofficial,omitempty"`
 }
 
 type Features struct {

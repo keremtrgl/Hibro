@@ -2,7 +2,7 @@
 
 **Reklamsız, hızlı, açık veriyle çalışan toplu taşıma uygulaması.** Moovit, Ekomobil ve benzeri uygulamalara alternatif.
 
-> Durum: **Çalışan MVP** (Kasım 2026). İzmir canlı otobüs takibi, İzmir metro/tramvay, Konya ve Gaziantep sefer saatleri gerçek verilerle çalışıyor.
+> Durum: **Çalışan MVP** (Kasım 2026). **17 şehir:** İzmir (canlı otobüs takibi, metro, tramvay, İZBAN), Konya, Gaziantep, Kocaeli ve topluluk verisiyle Antalya, Adana, Muğla, Erzurum, Ordu, Düzce, Mardin, Çanakkale, Burdur, Osmaniye, Safranbolu, Kırklareli, Kastamonu.
 
 ![Hibro ekranları: harita, canlı varışlar, canlı araçlı hat, duyurular, ayarlar](docs/img/ekranlar.png)
 

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -52,8 +54,14 @@ func loadIzmir(ctx context.Context, fc *fetch.Client) (*city.City, error) {
 	if err != nil {
 		return nil, err
 	}
+	// ESHOT GTFS gives the stop order of bus lines (the live API does
+	// not). Its timetable is old, so only stop sequences are used.
+	if f := eshotGTFS(ctx, fc); f != nil {
+		izmir.ApplyGTFS(st, f, "ESHOT GTFS")
+	}
 	sources := []city.Source{izmir.NewESHOT("b", st, fc, izmir.DefaultEndpoints)}
 	for _, f := range []struct{ prefix, url, name string }{
+		{"z", "https://www.izban.com.tr/gtfs/rail-izban-gtfs.zip", "İZBAN (banliyö)"},
 		{"m", "https://www.izmirmetro.com.tr/gtfs/rail-metro-gtfs.zip", "Metro İzmir"},
 		{"t", "https://www.tramizmir.com/gtfs/rail-tramizmir-gtfs.zip", "İzmir Tramvay"},
 		{"f", "https://www.izdeniz.com.tr/gtfs/ship-izdeniz-gtfs.zip", "İzdeniz (vapur)"},
@@ -158,6 +166,13 @@ func loadKocaeli(ctx context.Context, fc *fetch.Client) (*city.City, error) {
 	} else {
 		fc.Log.Warn("kocaeli current feed unavailable (Türkiye IP needed?), using 2018 archive", "err", err)
 	}
+	if communityEnabled() {
+		if c, err := communityCity(ctx, fc, communityCities["kocaeli"]); err == nil {
+			return c, nil
+		} else {
+			fc.Log.Warn("kocaeli community feed unavailable, using 2018 archive", "err", err)
+		}
+	}
 	res, err := fc.Cached(ctx, kocaeliArchive, 30*24*time.Hour)
 	if err != nil {
 		return nil, fmt.Errorf("kocaeli archive: %w", err)
@@ -174,4 +189,136 @@ func loadKocaeli(ctx context.Context, fc *fetch.Client) (*city.City, error) {
 		Note:  "Kocaeli'nin güncel verisine şu an ulaşılamadı; 2018 tarihli arşiv gösteriliyor. Duraklar büyük ölçüde doğru olsa da hatlar ve saatler değişmiş olabilir.",
 	}
 	return city.New(meta, gtfs.NewSource("kc", f, info)), nil
+}
+
+// eshotGTFS downloads the ESHOT GTFS: directly (Türkiye IPs) or from the
+// MobilityData mirror. Returns nil when neither works.
+func eshotGTFS(ctx context.Context, fc *fetch.Client) *gtfs.Feed {
+	for _, u := range []string{
+		"https://www.eshot.gov.tr/gtfs/bus-eshot-gtfs.zip",
+		"https://storage.googleapis.com/storage/v1/b/mdb-latest/o/tr-kocaeli-eshot-gtfs-1823.zip?alt=media",
+	} {
+		res, err := fc.Cached(ctx, u, 7*24*time.Hour)
+		if err != nil {
+			continue
+		}
+		if f, err := gtfs.Parse(res.Data); err == nil {
+			return f
+		}
+	}
+	fc.Log.Warn("eshot gtfs unavailable: bus lines will have no stop list")
+	return nil
+}
+
+// ---- community feeds (generated from KentKart's public web data by the
+// kk-gtfs project, mirrored monthly by MobilityData). Not official:
+// enabled with HIBRO_COMMUNITY=on and labelled in the app. Check the
+// data licence before a public release (docs/VERI_KAYNAKLARI.md). ----
+
+type communityFeed struct {
+	ID, Name, Slug string
+	MDB            int
+	Zoom           float64
+}
+
+var communityCities = map[string]communityFeed{
+	"adana":      {"adana", "Adana", "adana", 3407, 12},
+	"antalya":    {"antalya", "Antalya", "antalya", 3406, 12},
+	"burdur":     {"burdur", "Burdur", "burdur", 3405, 13},
+	"canakkale":  {"canakkale", "Çanakkale", "canakkale", 3404, 13},
+	"duzce":      {"duzce", "Düzce", "duzce", 3403, 13},
+	"erzurum":    {"erzurum", "Erzurum", "erzurum", 3402, 12.5},
+	"kastamonu":  {"kastamonu", "Kastamonu", "kastamonu", 3400, 13},
+	"kirklareli": {"kirklareli", "Kırklareli", "kirklareli", 3399, 13},
+	"kocaeli":    {"kocaeli", "Kocaeli", "kocaeli", 3398, 12},
+	"mardin":     {"mardin", "Mardin", "mardin", 3397, 12.5},
+	"mugla":      {"mugla", "Muğla", "mugla", 3396, 11},
+	"ordu":       {"ordu", "Ordu", "ordu", 3395, 12.5},
+	"osmaniye":   {"osmaniye", "Osmaniye", "osmaniye", 3394, 13},
+	"safranbolu": {"safranbolu", "Safranbolu", "safranbolu", 3393, 13},
+}
+
+func communityEnabled() bool { return env("HIBRO_COMMUNITY", "off") == "on" }
+
+func init() {
+	for id, cf := range communityCities {
+		if _, taken := loaders[id]; taken {
+			continue // official source wins (e.g. Kocaeli)
+		}
+		cf := cf
+		loaders[id] = func(ctx context.Context, fc *fetch.Client) (*city.City, error) {
+			if !communityEnabled() {
+				return nil, errors.New("community data disabled (HIBRO_COMMUNITY=on to enable)")
+			}
+			return communityCity(ctx, fc, cf)
+		}
+	}
+}
+
+var mdbZipRe = regexp.MustCompile(`https://files\.mobilitydatabase\.org/mdb-\d+/mdb-\d+-\d+/mdb-\d+-\d+\.zip`)
+
+// mdbLatest finds the newest dataset MobilityData stores for a feed.
+func mdbLatest(ctx context.Context, fc *fetch.Client, id int) (string, error) {
+	b, err := fc.Get(ctx, fmt.Sprintf("https://mobilitydatabase.org/feeds/gtfs/mdb-%d", id), 2)
+	if err != nil {
+		return "", err
+	}
+	all := mdbZipRe.FindAllString(string(b), -1)
+	if len(all) == 0 {
+		return "", errors.New("mobilitydatabase: no dataset link")
+	}
+	sort.Strings(all)
+	return all[len(all)-1], nil
+}
+
+func communityCity(ctx context.Context, fc *fetch.Client, cf communityFeed) (*city.City, error) {
+	var data []byte
+	var at time.Time
+	urls := []string{"https://github.com/Egezenn/kk-gtfs/raw/main/data/" + cf.Slug + ".zip"}
+	if u, err := mdbLatest(ctx, fc, cf.MDB); err == nil {
+		urls = append(urls, u)
+	}
+	var lastErr error
+	for _, u := range urls {
+		res, err := fc.Cached(ctx, u, 7*24*time.Hour)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		data, at = res.Data, res.FetchedAt
+		break
+	}
+	if data == nil {
+		return nil, fmt.Errorf("%s: %w", cf.ID, lastErr)
+	}
+	f, err := gtfs.Parse(data)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cf.ID, err)
+	}
+	info := model.SourceInfo{
+		Name:       "Topluluk verisi (KentKart kaynaklı, kk-gtfs)",
+		License:    "kk-gtfs veri lisansı",
+		URL:        fmt.Sprintf("https://mobilitydatabase.org/feeds/gtfs/mdb-%d", cf.MDB),
+		UpdatedAt:  at,
+		Unofficial: true,
+		Note:       "Bu şehrin verisi belediyeden değil; KentKart'ın herkese açık web verisinden topluluk tarafından üretildi. Küçük hatalar olabilir.",
+	}
+	markIfExpired(f, &info)
+	src := gtfs.NewSource(cf.ID, f, info)
+	lat, lon := medianCenter(src.Stops())
+	return city.New(city.Meta{ID: cf.ID, Name: cf.Name, Center: model.LatLon{lat, lon}, Zoom: cf.Zoom}, src), nil
+}
+
+func medianCenter(stops []model.Stop) (float64, float64) {
+	if len(stops) == 0 {
+		return 39, 35
+	}
+	lat := make([]float64, len(stops))
+	lon := make([]float64, len(stops))
+	for i, s := range stops {
+		lat[i], lon[i] = s.Lat, s.Lon
+	}
+	sort.Float64s(lat)
+	sort.Float64s(lon)
+	return lat[len(lat)/2], lon[len(lon)/2]
 }

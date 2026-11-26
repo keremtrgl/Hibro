@@ -96,13 +96,15 @@ class SourceInfo {
   final String name, license, url, note;
   final DateTime? updatedAt;
   final bool stale; // outdated fallback data (e.g. Kocaeli 2018 archive)
-  SourceInfo(this.name, this.license, this.url, this.updatedAt, {this.stale = false, this.note = ''});
+  final bool unofficial; // community generated, not from the operator
+  SourceInfo(this.name, this.license, this.url, this.updatedAt, {this.stale = false, this.unofficial = false, this.note = ''});
   factory SourceInfo.fromJson(Map<String, dynamic> j) => SourceInfo(
         _s(j['name']),
         _s(j['license']),
         _s(j['url']),
         DateTime.tryParse(_s(j['updatedAt'])),
         stale: j['stale'] == true,
+        unofficial: j['unofficial'] == true,
         note: _s(j['note']),
       );
 }
@@ -118,10 +120,14 @@ class CityInfo {
   /// Explanation shown when any of the city's data is outdated.
   String? get staleNote {
     for (final s in sources) {
-      if (s.stale) return s.note.isEmpty ? 'Bu şehrin verisi güncel olmayabilir.' : s.note;
+      if (s.stale || s.unofficial) {
+        return s.note.isEmpty ? 'Bu şehrin verisi güncel olmayabilir.' : s.note;
+      }
     }
     return null;
   }
+
+  bool get isCommunity => sources.isNotEmpty && sources.every((s) => s.unofficial);
   CityInfo({
     required this.id,
     required this.name,

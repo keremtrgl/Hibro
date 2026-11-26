@@ -20,6 +20,7 @@ import (
 	"github.com/keremtrgl/hibro/server/internal/cache"
 	"github.com/keremtrgl/hibro/server/internal/fetch"
 	"github.com/keremtrgl/hibro/server/internal/geo"
+	"github.com/keremtrgl/hibro/server/internal/gtfs"
 	"github.com/keremtrgl/hibro/server/internal/model"
 	"github.com/keremtrgl/hibro/server/internal/textnorm"
 )
@@ -463,6 +464,68 @@ type Static struct {
 	Alerts    []model.Alert
 	Night     map[string]bool
 	FetchedAt time.Time
+	// From the ESHOT GTFS (optional): ordered stop codes per line and
+	// direction, and the lines serving each stop. The live API has
+	// neither.
+	StopSeq   map[ShapeKey][]string
+	StopLines map[string][]string
+	SeqSource string // e.g. "ESHOT GTFS (2024)"
+}
+
+// ApplyGTFS takes stop order and stop->line lists from an ESHOT GTFS feed
+// (stop_id = DurakKodu, route_id = HatNo). GTFS direction 0/1 is mapped to
+// ESHOT Yon 1/2, swapped per line when the route shape says otherwise.
+func ApplyGTFS(st *Static, f *gtfs.Feed, label string) {
+	st.StopSeq = map[ShapeKey][]string{}
+	lines := map[string]map[string]bool{}
+	for key, ti := range f.RepTrip {
+		route := f.Routes[key[0]].ID
+		var seq []string
+		for _, s := range f.TripStops[ti] {
+			code := f.Stops[s.Stop].ID
+			seq = append(seq, code)
+			if lines[code] == nil {
+				lines[code] = map[string]bool{}
+			}
+			lines[code][route] = true
+		}
+		st.StopSeq[ShapeKey{route, int(key[1]) + 1}] = seq
+	}
+	// Fix direction numbering using the ESHOT route shapes.
+	stopPos := map[string][2]float64{}
+	for _, s := range f.Stops {
+		stopPos[s.ID] = [2]float64{s.Lat, s.Lon}
+	}
+	for _, l := range st.Lines {
+		a, b := st.StopSeq[ShapeKey{l.No, 1}], st.StopSeq[ShapeKey{l.No, 2}]
+		sh := st.Shapes[ShapeKey{l.No, 1}]
+		if len(a) == 0 || len(sh) == 0 {
+			continue
+		}
+		p := stopPos[a[0]]
+		dSame := geo.DistanceM(p[0], p[1], sh[0][0], sh[0][1])
+		dOther := geo.DistanceM(p[0], p[1], sh[len(sh)-1][0], sh[len(sh)-1][1])
+		if dOther+200 < dSame { // first stop sits at the shape's far end
+			st.StopSeq[ShapeKey{l.No, 1}], st.StopSeq[ShapeKey{l.No, 2}] = b, a
+		}
+	}
+	st.StopLines = map[string][]string{}
+	for code, set := range lines {
+		for r := range set {
+			st.StopLines[code] = append(st.StopLines[code], r)
+		}
+		sort.Slice(st.StopLines[code], func(i, j int) bool { return lineLess(st.StopLines[code][i], st.StopLines[code][j]) })
+	}
+	st.SeqSource = label
+}
+
+func lineLess(a, b string) bool {
+	na, ea := strconv.Atoi(a)
+	nb, eb := strconv.Atoi(b)
+	if ea == nil && eb == nil {
+		return na < nb
+	}
+	return a < b
 }
 
 // LoadStatic downloads (or reuses cached) static ESHOT data. Lines and
@@ -515,14 +578,15 @@ func LoadStatic(ctx context.Context, fc *fetch.Client, ep Endpoints, prefix stri
 }
 
 type ESHOT struct {
-	prefix   string
-	st       *Static
-	fc       *fetch.Client
-	ep       Endpoints
-	lines    map[string]Line
-	stops    map[string]bool
-	arrivals *cache.TTL[[]model.Arrival]
-	vehicles *cache.TTL[[]model.Vehicle]
+	prefix     string
+	st         *Static
+	fc         *fetch.Client
+	ep         Endpoints
+	lines      map[string]Line
+	stops      map[string]bool
+	stopByCode map[string]Stop
+	arrivals   *cache.TTL[[]model.Arrival]
+	vehicles   *cache.TTL[[]model.Vehicle]
 	// Fetch is used for live calls; replaced in tests.
 	Fetch func(ctx context.Context, url string) ([]byte, error)
 }
@@ -538,8 +602,10 @@ func NewESHOT(prefix string, st *Static, fc *fetch.Client, ep Endpoints) *ESHOT 
 	for _, l := range st.Lines {
 		e.lines[l.No] = l
 	}
+	e.stopByCode = make(map[string]Stop, len(st.Stops))
 	for _, s := range st.Stops {
 		e.stops[s.Code] = true
+		e.stopByCode[s.Code] = s
 	}
 	e.Fetch = func(ctx context.Context, u string) ([]byte, error) {
 		// The ESHOT API intermittently returns empty bodies; retry those.
@@ -577,7 +643,13 @@ func (e *ESHOT) Features() model.Features {
 func (e *ESHOT) Stops() []model.Stop {
 	out := make([]model.Stop, len(e.st.Stops))
 	for i, s := range e.st.Stops {
-		out[i] = model.Stop{ID: e.prefix + ":" + s.Code, Code: s.Code, Name: s.Name, Lat: s.Lat, Lon: s.Lon, Mode: model.ModeBus, District: s.District}
+		st := model.Stop{ID: e.prefix + ":" + s.Code, Code: s.Code, Name: s.Name, Lat: s.Lat, Lon: s.Lon, Mode: model.ModeBus, District: s.District}
+		for _, no := range e.st.StopLines[s.Code] {
+			if _, ok := e.lines[no]; ok {
+				st.Lines = append(st.Lines, e.prefix+":"+no)
+			}
+		}
+		out[i] = st
 	}
 	return out
 }
@@ -634,7 +706,12 @@ func (e *ESHOT) Line(_ context.Context, no string, now time.Time) (*model.LineDe
 			Shape:      e.st.Shapes[ShapeKey{no, dir}],
 			Departures: e.st.Schedule[SchedKey{no, dir, dt}],
 		}
-		if len(dd.Shape) == 0 && len(dd.Departures) == 0 {
+		for _, code := range e.st.StopSeq[ShapeKey{no, dir}] {
+			if s, ok := e.stopByCode[code]; ok {
+				dd.Stops = append(dd.Stops, model.StopRef{ID: e.prefix + ":" + code, Name: s.Name, Lat: s.Lat, Lon: s.Lon})
+			}
+		}
+		if len(dd.Shape) == 0 && len(dd.Departures) == 0 && len(dd.Stops) == 0 {
 			continue
 		}
 		d.Directions = append(d.Directions, dd)

@@ -26,6 +26,7 @@ final builtInCities = <CityInfo>[
   CityInfo(id: 'konya', name: 'Konya', lat: 37.8746, lon: 32.4932, zoom: 12.5, bounds: [37.6213, 32.3097, 38.2523, 32.9269]),
   CityInfo(id: 'gaziantep', name: 'Gaziantep', lat: 37.0662, lon: 37.3833, zoom: 12.5, bounds: [36.7003, 36.5829, 37.4057, 38.0246]),
   CityInfo(id: 'kocaeli', name: 'Kocaeli', lat: 40.7654, lon: 29.9408, zoom: 12, bounds: [40.4096, 29.1875, 41.2092, 30.3661]),
+  // Community-data cities are discovered from the server's /v1/cities.
 ];
 
 /// Map view of Türkiye, used before a city is chosen.
@@ -199,6 +200,8 @@ class AppState extends ChangeNotifier {
   /// Finds the city from the current location. Returns (city, located):
   /// city is null when the user is outside every supported city.
   Future<({CityInfo? city, bool located})> detectFromLocation() async {
+    // Make sure the full city list (with bounds) from the server is here.
+    if (cities.every((c) => c.stopCount == 0)) await _refreshCities();
     if (!await startLocation()) return (city: null, located: false);
     for (var i = 0; i < 40 && myLat == null; i++) {
       await Future<void>.delayed(const Duration(milliseconds: 150));
@@ -217,6 +220,7 @@ class AppState extends ChangeNotifier {
     try {
       final list = await api.cities();
       if (list.isNotEmpty) {
+        list.sort((a, b) => fold(a.name).compareTo(fold(b.name)));
         cities = list;
         notifyListeners();
       }

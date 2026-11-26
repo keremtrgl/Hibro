@@ -27,6 +27,38 @@ Durum işaretleri:
 
 ---
 
+## 1.1 Sistematik tarama (26.11.2026)
+
+Kaynak: MobilityData kataloğu (`share.mobilitydata.org/catalogs-csv`, 3.687 feed, **25 Türkiye kaydı**) + MobilityData'nın sakladığı aylık kopyalar. Her dosya Hibro'nun GTFS yükleyicisiyle açılıp ölçüldü (`go run ./server/cmd/gtfsinfo`).
+
+| Şehir | Kaynak | Resmi mi? | Durak | Hat | Tarife | Hibro'da |
+|---|---|---|---|---|---|---|
+| İzmir (otobüs) | ESHOT API + ESHOT GTFS (MobilityData kopyası) | ✅ | 10.483 | 394 | GTFS 2024 (sadece durak sırası için) | ✅ canlı + durak sırası |
+| İzmir (İZBAN) | izban.com.tr GTFS | ✅ | 41 | 8 | 2025'te bitmiş | ✅ "eski veri" uyarısıyla |
+| İstanbul (İETT) | `data.ibb.gov.tr/dataset/iett-gtfs-verisi` (mdb-3128) | ✅ | ? | ? | ? | 🌍 VPS'ten denenecek |
+| Kocaeli | Topluluk (KentKart) Kasım 2026 | ❌ | 8.672 | 415 | Kas-Ara 2026 | ✅ (belediye verisi VPS'ten inerse o kullanılır) |
+| Antalya | Topluluk (KentKart) | ❌ | 4.617 | 167 (tramvay dahil) | Kas-Ara 2026 | ✅ `HIBRO_COMMUNITY=on` |
+| Adana | Topluluk (KentKart) | ❌ | 3.337 | 132 | Kas-Ara 2026 | ✅ |
+| Muğla | Topluluk (KentKart) | ❌ | 3.440 | 321 | Kas-Ara 2026 | ✅ |
+| Düzce | Topluluk (KentKart) | ❌ | 1.237 | 50 | Kas-Ara 2026 | ✅ |
+| Ordu | Topluluk (KentKart) | ❌ | 910 | 45 | Kas-Ara 2026 | ✅ |
+| Mardin | Topluluk (KentKart) | ❌ | 765 | 87 | Kas-Ara 2026 | ✅ |
+| Erzurum | Topluluk (KentKart) | ❌ | 747 | 58 | Kas-Ara 2026 | ✅ |
+| Burdur | Topluluk (KentKart) | ❌ | 346 | 18 | Kas-Ara 2026 | ✅ |
+| Çanakkale | Topluluk (KentKart) | ❌ | 324 | 11 | Kas-Ara 2026 | ✅ |
+| Osmaniye | Topluluk (KentKart) | ❌ | 221 | 15 | Kas-Ara 2026 | ✅ |
+| Safranbolu | Topluluk (KentKart) | ❌ | 167 | 11 | Kas-Ara 2026 | ✅ |
+| Kırklareli | Topluluk (KentKart) | ❌ | 127 | 5 | Kas-Ara 2026 | ✅ |
+| Kastamonu | Topluluk (KentKart) | ❌ | 91 | 23 | Kas-Ara 2026 | ✅ |
+| Gaziantep | Belediye GTFS (resmi) + topluluk | ✅ | 3.230 | 167 | — | ✅ resmi olan |
+| Konya | Belediye GTFS | ✅ | 4.256 | 169 | 2030'a kadar | ✅ |
+| Isparta | Bink Teknoloji | ✅ | 61 | 1 | — | ❌ tek hat, yetersiz |
+| Şehirlerarası | Flixbus Türkiye (331 hat), Türkiye demiryolları (Ray Atlası, 49 hat) | ✅ / ❌ | | | güncel | ⏳ rota planlayıcıya eklenecek |
+
+**Topluluk verisi hakkında:** `kk-gtfs` projesi KentKart'ın herkese açık web uç noktalarından GTFS üretiyor, MobilityData her ay kopyalıyor. Resmi değildir. Uygulamada "topluluk verisi" olarak etiketlenir ve `HIBRO_COMMUNITY=on` ile açılır. **Herkese açık yayından önce** `kk-gtfs` veri lisansı ve KentKart/belediye izni kontrol edilmeli. En temiz çözüm: KentKart ile resmi veri anlaşması (27 bölge).
+
+**Kocaeli 2018 → 2026 değişimi** (`gtfsdiff`): duraklar %83 aynı yerde, %13 yer değiştirmiş, 2.910 yeni durak; hat numaralarının %64'ü korunmuş, 122 hat kaldırılmış, 194 hat eklenmiş; korunan hatların yalnızca %30'unun güzergâhı aynı. Sonuç: 8 yıllık veri hat ve saat için kullanılmaz; topluluk verisi çok daha doğru.
+
 ## 2. Şehir detayları
 
 ### 2.1 İzmir (öncelik 1)
