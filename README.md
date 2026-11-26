@@ -20,6 +20,7 @@
 - [`docs/VERI_KAYNAKLARI.md`](docs/VERI_KAYNAKLARI.md): Türkiye'deki tüm açık GTFS ve API kaynakları (test edilmiş)
 - [`docs/MIMARI.md`](docs/MIMARI.md): Teknik mimari ve teknoloji seçimleri
 - [`data/feeds.yaml`](data/feeds.yaml): Veri hattının okuyacağı makine-okunur feed listesi
+- [`docs/kararlar/`](docs/kararlar/): Mimari kararlar (001: Flutter)
 
 ## İlkeler
 

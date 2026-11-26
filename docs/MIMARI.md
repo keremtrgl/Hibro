@@ -42,7 +42,7 @@
 | RT köprüsü & API | **Go** | Düşük gecikme, tek binary, düşük RAM | Rust (axum) |
 | Veritabanı | PostgreSQL + PostGIS, Redis | Coğrafi sorgu ("yakındaki duraklar"), canlı veri cache | |
 | Harita | **MapLibre** + kendi vektör karolarımız (Protomaps/PMTiles, OSM) | Google Maps ücreti yok, çevrimdışı karo mümkün, izleyici yok | |
-| Mobil | **Kotlin Multiplatform (Compose MP)** veya Flutter | Native performans, küçük APK. Bkz. karar 4.1 | React Native |
+| Mobil | **Flutter** (Riverpod, drift, maplibre_gl) | Olgun MapLibre desteği, tek kod tabanı, hızlı geliştirme. Bkz. [Karar 001](kararlar/001-mobil-cati.md) | KMP + Compose |
 | Çevrimdışı veri | SQLite (şehir paketi, ~5-20 MB) | Cihazda durak/saat sorgusu, internetsiz rota | |
 | Bildirimler | Self-hosted ntfy / UnifiedPush + FCM fallback | Google bağımlılığını azaltır | |
 | Analitik | Opt-in, self-hosted (Plausible/Umami tarzı, olay sayımı) | Gizlilik, reklam ağı yok | |
@@ -59,14 +59,29 @@
 
 ## 4. Açık kararlar
 
-### 4.1 Mobil çatı: KMP mi Flutter mı?
-- **KMP + Compose:** En iyi Android performansı, küçük APK, iOS'ta SwiftUI de kullanılabilir. Ekosistem daha genç.
-- **Flutter:** Tek kod tabanı, hızlı geliştirme, MapLibre eklentisi olgun. APK ~8-10 MB daha büyük.
-- **Öneri:** Ekip küçükse Flutter ile MVP. Performans bütçesi aşılırsa Android'i native Compose'a taşı.
+### 4.1 Mobil çatı: ✅ Karar verildi, Flutter
+Ayrıntılar ve performans kuralları: [Karar 001](kararlar/001-mobil-cati.md).
 
 ### 4.2 Rota motorunu sunucuda mı cihazda mı çalıştıralım?
 - MVP: Sunucuda (MOTIS).
 - Faz 4: Tek şehir için cihazda hafif RAPTOR (çevrimdışı rota). Bir şehrin zaman tablosu birkaç MB tutar, bu yapılabilir.
+
+## 4.3 Türkiye VPS gereksinimleri
+
+İBB ve ESHOT yurt dışı IP'lerini engellediği için sunucu Türkiye'de olacak.
+
+| Aşama | vCPU | RAM | Disk | Ne çalışır |
+|---|---|---|---|---|
+| Faz 0-1 (İzmir) | 4 | 8 GB | 80 GB NVMe | Ingest, RT köprüsü, MOTIS, API, Postgres, Redis (tek makine, Docker Compose) |
+| Faz 2 (+ İstanbul) | 8 | 16-32 GB | 160 GB NVMe | MOTIS İstanbul + OSM Türkiye verisi RAM ister |
+
+Seçim kriterleri:
+- Türkiye lokasyonu (İstanbul veya Ankara veri merkezi), statik IPv4
+- NVMe disk, aylık en az 2 TB trafik
+- Snapshot/yedek desteği
+- KVKK uyumu: kullanıcı verisi Türkiye'de kalır (zaten minimum veri tutuyoruz)
+
+Kurulum: Ubuntu 24.04 LTS, Docker Compose, Caddy (otomatik HTTPS), sadece 22/80/443 açık, SSH yalnızca anahtarla.
 
 ## 5. Veri hattı adımları (her gece 03:00 TR)
 

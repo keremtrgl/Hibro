@@ -29,12 +29,12 @@ Son güncelleme: 26 Kasım 2026
 **Amaç:** Verinin gerçekten kullanılabilir olduğunu kanıtlamak.
 
 - [x] Türkiye açık veri envanteri (`docs/VERI_KAYNAKLARI.md`, `data/feeds.yaml`)
-- [ ] Türkiye'de bir VPS kiralamak (İBB ve ESHOT geo-blok yüzünden şart)
+- [ ] Türkiye'de bir VPS kiralamak (İBB ve ESHOT geo-blok yüzünden şart). Karar verildi, gereksinimler [MIMARI §4.3](MIMARI.md)'te.
 - [ ] TR IP'den ESHOT GTFS'i ve İBB `public-transport-gtfs-data` veri setini indirip doğrulamak
 - [ ] Tüm feed'leri MobilityData `gtfs-validator` ile raporlamak
 - [ ] İzmir canlı API'lerini 24 saat boyunca loglamak: güncelleme sıklığı, kesinti oranı, ESHOT GTFS `trip_id` ile eşleşebilirlik
 - [ ] Lisans kontrolü: İzmir, Konya (CC BY 4.0), Gaziantep, İBB lisanslarının destekçi üyeliğine izin verip vermediği
-- [ ] Mobil çatı kararı (Flutter ve KMP için 1'er günlük prototip, APK boyutu ve açılış süresi ölçümü)
+- [x] Mobil çatı kararı: **Flutter** ([Karar 001](kararlar/001-mobil-cati.md))
 
 **Çıkış kriteri:** En az 1 şehirde geçerli GTFS ve çalışan canlı veri doğrulanmış olmalı.
 
@@ -162,7 +162,7 @@ Hedef maliyet (Faz 2 sonu): 2 VPS (TR ingest + API/MOTIS), CDN. Aylık ~ 50-150 
 ## Hemen sonraki 5 adım
 
 1. Repoyu **gizli** yap (GitHub → Settings → Danger Zone → Change visibility)
-2. Mobil çatı kararını ver (Flutter / KMP)
-3. Türkiye VPS'i kirala, ESHOT ve İBB GTFS'ini oradan indir
+2. Türkiye VPS'i kirala (4 vCPU / 8 GB / 80 GB NVMe), ESHOT ve İBB GTFS'ini oradan indir
+3. `app/` Flutter iskeleti: harita + İzmir durakları + canlı otobüsler
 4. `ingest/` iskeleti: `feeds.yaml` okuyucu + `gtfs-validator` entegrasyonu
-5. İzmir RT köprüsü prototipi: canlı otobüsleri haritada göster
+5. İzmir RT köprüsü: belediye JSON → GTFS-Realtime
