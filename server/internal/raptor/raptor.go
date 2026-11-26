@@ -471,7 +471,13 @@ func (q *query) build(labels [][]label, k int, s int32, arrive, egressM int32, f
 					note = "tahmini saat"
 				}
 			}
+			path := make([][2]float64, 0, l.apos-l.bpos+1)
+			for i := l.bpos; i <= l.apos; i++ {
+				st := q.p.stops[pt.stops[i]]
+				path = append(path, [2]float64{st.lat, st.lon})
+			}
 			legs = append(legs, model.Leg{
+				Polyline: geo.EncodePolyline(path), Precision: 5,
 				Note: note,
 				Mode: modeNames[model.ModeFromGTFS(rt.Type)], From: q.ref(pt.stops[l.bpos]), To: q.ref(pt.stops[l.apos]),
 				Start: q.at(q.dep(pt, l.trip, l.bpos)), End: q.at(q.arr(pt, l.trip, l.apos)),
@@ -531,6 +537,12 @@ func (q *query) build(labels [][]label, k int, s int32, arrive, egressM int32, f
 	}
 	if len(legs) == 0 {
 		return model.Itinerary{}, false
+	}
+	for i := range legs {
+		if legs[i].Mode == "WALK" && legs[i].Polyline == "" {
+			legs[i].Polyline = geo.EncodePolyline([][2]float64{{legs[i].From.Lat, legs[i].From.Lon}, {legs[i].To.Lat, legs[i].To.Lon}})
+			legs[i].Precision = 5
+		}
 	}
 	it := model.Itinerary{Start: legs[0].Start, End: legs[len(legs)-1].End, Legs: legs}
 	it.DurationS = int(it.End.Sub(it.Start).Seconds())

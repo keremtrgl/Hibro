@@ -148,6 +148,13 @@ func TestSourceWithFakeUpstream(t *testing.T) {
 	if calls != 1 {
 		t.Fatalf("arrivals not cached: %d upstream calls", calls)
 	}
+	// Live answers with no vehicles: no routing timetable here, so empty.
+	e.Fetch = func(ctx context.Context, u string) ([]byte, error) {
+		return []byte(`{"Data":{"data":[]}}`), nil
+	}
+	if arr, _ := e.Arrivals(ctx, "12337", time.Now()); len(arr) != 0 {
+		t.Fatalf("expected no arrivals without a timetable: %+v", arr)
+	}
 	if _, err := e.Arrivals(ctx, "999999", time.Now()); err != ErrNotFound {
 		t.Fatalf("unknown stop err = %v", err)
 	}

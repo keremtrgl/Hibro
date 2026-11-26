@@ -106,6 +106,8 @@ type Arrival struct {
 	Lon float64 `json:"lon,omitempty"`
 	// Crowded is set when riders reported this line as crowded recently.
 	Crowded bool `json:"crowded,omitempty"`
+	// Estimated: a timetable estimate shown because live data was empty.
+	Estimated bool `json:"estimated,omitempty"`
 }
 
 // NearbyVehicle is a live vehicle near a point, with enough line info

@@ -765,13 +765,32 @@ func (e *ESHOT) Arrivals(ctx context.Context, code string, now time.Time) ([]mod
 	if !e.stops[code] {
 		return nil, ErrNotFound
 	}
-	return e.arrivals.Get(ctx, code, func(ctx context.Context) ([]model.Arrival, error) {
+	live, err := e.arrivals.Get(ctx, code, func(ctx context.Context) ([]model.Arrival, error) {
 		b, err := e.Fetch(ctx, fmt.Sprintf(e.ep.Arrivals, url.QueryEscape(code)))
 		if err != nil {
 			return nil, err
 		}
 		return ParseArrivals(b, e.prefix, time.Now())
 	})
+	if len(live) > 0 {
+		return live, err
+	}
+	// Live system empty or down: fall back to the estimated timetable
+	// (current terminal departures + GTFS travel times), clearly marked.
+	if e.routing != nil {
+		if est, serr := e.routing.Arrivals(ctx, code, now); serr == nil && len(est) > 0 {
+			cut := est[:0]
+			for _, a := range est {
+				if a.Minutes <= 60 {
+					a.Estimated = true
+					a.Color = lineColor(e.lines[strings.TrimPrefix(a.LineID, e.prefix+":")])
+					cut = append(cut, a)
+				}
+			}
+			return cut, err
+		}
+	}
+	return live, err
 }
 
 func (e *ESHOT) Vehicles(ctx context.Context, no string) ([]model.Vehicle, error) {
