@@ -3,6 +3,8 @@ package city
 import (
 	"context"
 	"log/slog"
+	"runtime"
+	"runtime/debug"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -82,6 +84,10 @@ func (r *Registry) LoadAll(ctx context.Context) {
 	}
 	r.mu.RUnlock()
 	var wg sync.WaitGroup
+	// At most 3 cities load at once: parsing holds the raw zip and the
+	// new tables in memory together, so loading 17 cities in parallel
+	// would double the peak memory for no real gain.
+	sem := make(chan struct{}, 3)
 	for _, e := range list {
 		if e.loader == nil {
 			continue
@@ -89,6 +95,8 @@ func (r *Registry) LoadAll(ctx context.Context) {
 		wg.Add(1)
 		go func(e *entry) {
 			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
 			start := time.Now()
 			c, err := e.loader(ctx)
 			if err != nil {
@@ -101,6 +109,9 @@ func (r *Registry) LoadAll(ctx context.Context) {
 		}(e)
 	}
 	wg.Wait()
+	// Hand the memory used while parsing back to the OS.
+	runtime.GC()
+	debug.FreeOSMemory()
 }
 
 // RefreshEvery reloads all cities on a fixed interval until ctx ends.

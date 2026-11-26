@@ -27,6 +27,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"strings"
 	"syscall"
 	"time"
@@ -55,6 +56,13 @@ func main() {
 	}
 	log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level}))
 	slog.SetDefault(log)
+
+	// Memory: the data is large and long-lived; collect earlier than the
+	// default (GOGC=100 lets the heap grow to 2x the live data). Both can
+	// be overridden with the standard GOGC / GOMEMLIMIT variables.
+	if os.Getenv("GOGC") == "" {
+		debug.SetGCPercent(50)
+	}
 
 	fc := fetch.New(env("HIBRO_DATA_DIR", "./data-cache"))
 	fc.Log = log

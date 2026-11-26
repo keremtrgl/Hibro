@@ -75,7 +75,9 @@ Ayrıntılar ve performans kuralları: [Karar 001](kararlar/001-mobil-cati.md).
 | Faz 0-1 (İzmir, beta) | 2 | 4 GB | 40 GB SSD | Hepsi tek makinede, Docker Compose |
 | Faz 2 (+ İstanbul, Konya, Gaziantep) | 4 | 8 GB | 80 GB | Kullanıcı ve şehir sayısı artınca yükseltilir |
 
-Ölçüm (26.11.2026): 17 şehir birlikte (İzmir canlı + 16 GTFS şehri) sunucu belleği **~820 MB**, ilk yükleme ~45 sn (disk cache'ten sonraki açılışlar çok daha hızlı). 2 vCPU / 4 GB VPS yeterli.
+Ölçüm (26.11.2026): 17 şehir birlikte (İzmir canlı + 16 GTFS şehri) sunucu belleği **~650 MB** (GOGC=50, en fazla 3 şehir aynı anda yüklenir, yükleme sonrası bellek işletim sistemine iade edilir; önceki ayarla ~820 MB). İlk yükleme ~80 sn. 2 vCPU / 4 GB VPS yeterli.
+
+İleride gerekirse: sefer tablolarını desen (pattern) bazında saklamak satır başına ~8 bayt, toplamda ~90 MB daha kazandırır.
 
 Neden bu kadar küçük yeterli:
 - OSM verisinin tamamı (Türkiye) değil, yalnızca şehir sınırı kesilir (`osmium extract`). İzmir kesiti ~100 MB, tüm Türkiye ~1 GB+.
