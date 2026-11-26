@@ -15,6 +15,13 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final _q = TextEditingController();
+  bool _trackedEmpty = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => AppScope.read(context).track('screen_search'));
+  }
 
   @override
   void dispose() {
@@ -27,6 +34,10 @@ class _SearchScreenState extends State<SearchScreen> {
     final s = AppScope.of(context);
     final t = Theme.of(context);
     final res = s.search(_q.text);
+    if (!_trackedEmpty && _q.text.trim().length >= 3 && res.lines.isEmpty && res.stops.isEmpty) {
+      _trackedEmpty = true; // counts searches that found nothing: tells us what data is missing
+      s.track('search_empty');
+    }
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 0,

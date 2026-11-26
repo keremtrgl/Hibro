@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../state/app_state.dart';
 import '../state/scope.dart';
+import 'privacy_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -45,6 +46,18 @@ class SettingsScreen extends StatelessWidget {
             RadioListTile(value: AppThemeMode.light, title: Text('Açık')),
             RadioListTile(value: AppThemeMode.dark, title: Text('Koyu')),
           ]),
+        ),
+        _section(t, 'Gizlilik ve veri'),
+        ListTile(
+          leading: const Icon(Icons.privacy_tip_outlined),
+          title: const Text('Paylaşım tercihlerin'),
+          subtitle: Text([
+            s.shareUsage ? 'Kullanım istatistikleri: açık' : 'Kullanım istatistikleri: kapalı',
+            s.shareTrips ? 'Yolculuk verisi: açık' : 'Yolculuk verisi: kapalı',
+          ].join('\n')),
+          isThreeLine: true,
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrivacyScreen())),
         ),
         _section(t, 'Sunucu'),
         ListTile(

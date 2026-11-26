@@ -1,0 +1,60 @@
+import 'package:material_ui/material_ui.dart';
+
+import '../state/scope.dart';
+
+/// Plain-language privacy notice shown in the app. The legal texts live
+/// in docs/legal/ and must be reviewed by a lawyer before release.
+class PrivacyScreen extends StatelessWidget {
+  const PrivacyScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final s = AppScope.of(context);
+    final t = Theme.of(context);
+    Widget h(String text) => Padding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 6),
+          child: Text(text, style: t.textTheme.titleMedium),
+        );
+    Widget p(String text) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Text(text, style: t.textTheme.bodyMedium),
+        );
+    return Scaffold(
+      appBar: AppBar(title: const Text('Gizlilik ve veri')),
+      body: ListView(children: [
+        h('Kısaca'),
+        p('Hibro reklam göstermez ve verini kimseye satmaz. Hesap, telefon numarası veya e-posta istemez. '
+            'Aşağıdaki iki paylaşım tamamen isteğe bağlıdır ve varsayılan olarak kapalıdır.'),
+        SwitchListTile(
+          value: s.shareUsage,
+          onChanged: (v) => s.setConsent(usage: v),
+          title: const Text('Anonim kullanım istatistikleri'),
+          subtitle: const Text('Hangi ekranların ne kadar kullanıldığına dair günlük toplam sayılar. Konum ve kimlik içermez.'),
+        ),
+        SwitchListTile(
+          value: s.shareTrips,
+          onChanged: (v) => s.setConsent(trips: v),
+          title: const Text('Yolculuk verisi paylaş'),
+          subtitle: const Text('Yalnızca "Bu araca bindim" dediğinde, araçtayken GPS noktaları. Varış tahminlerini iyileştirir.'),
+        ),
+        h('Konumun'),
+        p('Konumun, yakındaki durakları ve otobüsleri göstermek için kullanılır. Yakındaki duraklar telefonunda hesaplanır. '
+            'Yakındaki otobüsleri sorarken ve rota ararken konum sunucuya gider ama kaydedilmez.'),
+        h('Yolculuk verisi nasıl korunur?'),
+        p('• Sadece sen "Bindim" dediğinde ve araçtayken kaydedilir.\n'
+            '• Yolculuğun ilk ve son 300 metresi telefonunda silinir; evin veya işin görünmez.\n'
+            '• Her gün değişen rastgele bir kimlikle gönderilir; sana bağlanamaz.\n'
+            '• Ham noktalar en fazla 30 gün saklanır, sonra yalnızca hat bazlı toplam istatistik kalır.\n'
+            '• Veriler Türkiye\'deki sunucumuzda tutulur, üçüncü kişilerle paylaşılmaz.'),
+        h('Sorun bildirimleri'),
+        p('Bildirdiğin sorun türü, durak/hat ve yazdığın not saklanır (en fazla 1 yıl). Konum ve kimlik gönderilmez.'),
+        h('Favoriler ve ayarlar'),
+        p('Yalnızca bu telefonda tutulur, sunucuya gönderilmez.'),
+        h('Hakların'),
+        p('Verilerin kimliğe bağlanmadığı için kişisel bir kaydını tutmuyoruz; paylaşımları istediğin an buradan kapatabilirsin. '
+            'KVKK kapsamındaki soruların için uygulama yayınlandığında iletişim adresi burada yer alacak.'),
+        const SizedBox(height: 32),
+      ]),
+    );
+  }
+}

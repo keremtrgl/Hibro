@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show File;
+import 'dart:math' show Random;
 
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
@@ -13,6 +14,7 @@ import '../util/geo.dart';
 import '../util/text.dart';
 
 const defaultApiUrl = String.fromEnvironment('HIBRO_API', defaultValue: 'http://10.0.2.2:8080');
+const appVersion = 'hibro-0.2';
 
 /// Cities known at build time, so the map can open instantly on first
 /// launch before anything is downloaded.
@@ -60,6 +62,73 @@ class AppState extends ChangeNotifier {
     favorites = (jsonDecode(prefs.getString('favs') ?? '[]') as List)
         .map((e) => Favorite.fromJson(e as Map<String, dynamic>))
         .toList();
+    consentAsked = prefs.getBool('consentAsked') ?? false;
+    shareUsage = prefs.getBool('shareUsage') ?? false;
+    shareTrips = prefs.getBool('shareTrips') ?? false;
+  }
+
+  // ---- privacy choices (all off until the user turns them on) ----
+
+  late bool consentAsked, shareUsage, shareTrips;
+
+  Future<void> setConsent({bool? usage, bool? trips}) async {
+    if (usage != null) {
+      shareUsage = usage;
+      await prefs.setBool('shareUsage', usage);
+      if (!usage) _events.clear();
+    }
+    if (trips != null) {
+      shareTrips = trips;
+      await prefs.setBool('shareTrips', trips);
+    }
+    consentAsked = true;
+    await prefs.setBool('consentAsked', true);
+    notifyListeners();
+  }
+
+  /// Random id that changes every day, used only to group the points of
+  /// one uploaded trip. It is never linked to the device or a person.
+  String get dailySession {
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    if (prefs.getString('sessionDay') != today) {
+      final r = Random.secure();
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-';
+      final id = List.generate(24, (_) => chars[r.nextInt(chars.length)]).join();
+      prefs.setString('sessionDay', today);
+      prefs.setString('session', id);
+    }
+    return prefs.getString('session')!;
+  }
+
+  // ---- anonymous usage counters ----
+
+  final Map<String, int> _events = {};
+  Timer? _flushTimer;
+
+  /// Counts an event locally. Nothing leaves the phone unless the user
+  /// enabled "anonim kullanım istatistikleri".
+  void track(String event) {
+    if (!shareUsage) return;
+    _events[event] = (_events[event] ?? 0) + 1;
+    _flushTimer ??= Timer(const Duration(seconds: 60), flushEvents);
+  }
+
+  Future<void> flushEvents() async {
+    _flushTimer?.cancel();
+    _flushTimer = null;
+    if (!shareUsage || _events.isEmpty) return;
+    final batch = Map<String, int>.of(_events);
+    _events.clear();
+    try {
+      await api.telemetry(cityId, batch);
+    } catch (_) {
+      // Best effort: counters are not worth retrying or storing.
+    }
+  }
+
+  Future<void> sendReport({required String kind, String? stopId, String? lineId, String? plate, String? note}) async {
+    await api.report(cityId, kind: kind, stopId: stopId, lineId: lineId, plate: plate, note: note, app: appVersion);
+    track('report_sent');
   }
 
   final SharedPreferences prefs;
@@ -86,6 +155,7 @@ class AppState extends ChangeNotifier {
   CityInfo get city => cityInfo ?? cities.firstWhere((c) => c.id == cityId, orElse: () => builtInCities.first);
 
   Future<void> init() async {
+    track('app_open');
     await _loadCachedPack();
     unawaited(refresh());
     unawaited(_refreshCities());
@@ -194,6 +264,7 @@ class AppState extends ChangeNotifier {
       favorites.removeWhere((f) => f.kind == kind && f.id == id && f.city == cityId);
     } else {
       favorites.insert(0, Favorite(kind, cityId, id, title, subtitle));
+      track('favorite_add');
     }
     await prefs.setString('favs', jsonEncode(favorites.map((f) => f.toJson()).toList()));
     notifyListeners();
@@ -218,8 +289,11 @@ class AppState extends ChangeNotifier {
         return false;
       }
       locationDenied = false;
-      final last = await Geolocator.getLastKnownPosition().catchError((_) => null);
-      if (last != null) _setPos(last);
+      // Not supported on web, where it throws synchronously.
+      try {
+        final last = await Geolocator.getLastKnownPosition();
+        if (last != null) _setPos(last);
+      } catch (_) {}
       _posSub ??= Geolocator.getPositionStream(
         locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 15),
       ).listen(_setPos, onError: (_) {});
@@ -238,6 +312,7 @@ class AppState extends ChangeNotifier {
   @override
   void dispose() {
     _posSub?.cancel();
+    _flushTimer?.cancel();
     super.dispose();
   }
 

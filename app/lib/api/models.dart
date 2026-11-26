@@ -137,8 +137,9 @@ class Arrival {
   final String lineId, line, headsign, color, time, plate;
   final Mode mode;
   final int minutes, distanceM, stopsAway;
-  final bool realtime, isLast;
+  final bool realtime, isLast, crowded;
   final bool? accessible, bicycle, electric;
+  final double lat, lon; // live vehicle position, 0 when unknown
   Arrival.fromJson(Map<String, dynamic> j)
       : lineId = _s(j['lineId']),
         line = _s(j['line']),
@@ -152,6 +153,9 @@ class Arrival {
         stopsAway = _i(j['stopsAway']),
         realtime = j['realtime'] == true,
         isLast = j['isLast'] == true,
+        crowded = j['crowded'] == true,
+        lat = _d(j['lat']),
+        lon = _d(j['lon']),
         accessible = j['accessible'] as bool?,
         bicycle = j['bicycle'] as bool?,
         electric = j['electric'] as bool?;
@@ -256,3 +260,34 @@ class Itinerary {
         end = DateTime.parse(_s(j['end'])).toLocal(),
         legs = ((j['legs'] as List?) ?? const []).map((e) => Leg.fromJson(e as Map<String, dynamic>)).toList();
 }
+
+class NearbyVehicle {
+  final String id, lineId, line, headsign, color;
+  final Mode mode;
+  final double lat, lon;
+  final int distanceM;
+  NearbyVehicle.fromJson(Map<String, dynamic> j)
+      : id = _s(j['id']),
+        lineId = _s(j['lineId']),
+        line = _s(j['line']),
+        headsign = _s(j['headsign']),
+        color = _s(j['color']),
+        mode = parseMode(j['mode'] as String?),
+        lat = _d(j['lat']),
+        lon = _d(j['lon']),
+        distanceM = _i(j['distanceM']);
+}
+
+/// Report kinds the server accepts (kept in the app so reporting works
+/// with a flaky connection; the server validates again).
+const reportKinds = <String, String>{
+  'crowded': 'Araç çok kalabalık',
+  'no_show': 'Araç gelmedi',
+  'ghost': 'Uygulamada görünen araç yok',
+  'late': 'Araç geç geldi',
+  'early': 'Araç erken geçti',
+  'wrong_stop': 'Durak yeri veya adı yanlış',
+  'wrong_time': 'Sefer saati yanlış',
+  'broken': 'Durak/araç arızalı veya kirli',
+  'other': 'Diğer',
+};

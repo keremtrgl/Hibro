@@ -8,6 +8,7 @@ import 'screens/home_screen.dart';
 import 'screens/settings_screen.dart';
 import 'state/app_state.dart';
 import 'state/scope.dart';
+import 'widgets/consent_sheet.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -53,8 +54,31 @@ class _Shell extends StatefulWidget {
   State<_Shell> createState() => _ShellState();
 }
 
-class _ShellState extends State<_Shell> {
+class _ShellState extends State<_Shell> with WidgetsBindingObserver {
   int _tab = 0;
+  static const _tabEvents = ['screen_map', 'screen_favorites', 'screen_alerts', 'screen_settings'];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final s = AppScope.read(context);
+      if (!s.consentAsked) showConsentSheet(context);
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // Send pending anonymous counters when the app goes to the background.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) AppScope.read(context).flushEvents();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,15 +86,18 @@ class _ShellState extends State<_Shell> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: dark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
       child: Scaffold(
-        body: IndexedStack(index: _tab, children: const [
-          HomeScreen(),
-          FavoritesScreen(),
-          AlertsScreen(),
-          SettingsScreen(),
+        body: IndexedStack(index: _tab, children: [
+          HomeScreen(active: _tab == 0),
+          const FavoritesScreen(),
+          const AlertsScreen(),
+          const SettingsScreen(),
         ]),
         bottomNavigationBar: NavigationBar(
           selectedIndex: _tab,
-          onDestinationSelected: (i) => setState(() => _tab = i),
+          onDestinationSelected: (i) {
+            if (i != _tab) AppScope.read(context).track(_tabEvents[i]);
+            setState(() => _tab = i);
+          },
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
           destinations: const [
             NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map), label: 'Harita'),

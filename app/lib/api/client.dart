@@ -87,6 +87,51 @@ class HibroApi {
     return j.map((e) => Alert.fromJson(e as Map<String, dynamic>)).toList();
   }
 
+  Future<List<NearbyVehicle>> nearbyVehicles(String city, double lat, double lon) async {
+    final j = await _get('/v1/cities/${seg(city)}/vehicles/nearby', q: {'lat': '$lat', 'lon': '$lon'}) as Map<String, dynamic>;
+    return ((j['vehicles'] as List?) ?? const []).map((e) => NearbyVehicle.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> _post(String path, Map<String, dynamic> body, {Duration timeout = const Duration(seconds: 20)}) async {
+    final http.Response r;
+    try {
+      r = await _http
+          .post(_u(path), headers: {'Content-Type': 'application/json'}, body: jsonEncode(body))
+          .timeout(timeout);
+    } catch (_) {
+      throw ApiException('Gönderilemedi. İnternet bağlantını kontrol et.');
+    }
+    if (r.statusCode >= 300) {
+      String msg = 'Gönderilemedi (${r.statusCode})';
+      try {
+        msg = (jsonDecode(utf8.decode(r.bodyBytes)) as Map<String, dynamic>)['error'] as String? ?? msg;
+      } catch (_) {}
+      throw ApiException(msg, r.statusCode);
+    }
+  }
+
+  Future<void> report(String city, {required String kind, String? stopId, String? lineId, String? plate, String? note, String? app}) =>
+      _post('/v1/cities/${seg(city)}/reports', {
+        'kind': kind,
+        'stopId': ?stopId,
+        'lineId': ?lineId,
+        if (plate != null && plate.isNotEmpty) 'plate': plate,
+        if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+        'app': ?app,
+      });
+
+  Future<void> telemetry(String city, Map<String, int> events) =>
+      _post('/v1/telemetry', {'city': city, 'events': events}, timeout: const Duration(seconds: 10));
+
+  Future<void> uploadTrip(String city, {required String session, required String lineId, required int direction, required List<List<double>> points, String? app}) =>
+      _post('/v1/cities/${seg(city)}/trips', {
+        'session': session,
+        'lineId': lineId,
+        'direction': direction,
+        'points': points,
+        'app': ?app,
+      }, timeout: const Duration(seconds: 60));
+
   Future<List<Itinerary>> plan(String city, double fLat, double fLon, double tLat, double tLon) async {
     final j = await _get('/v1/cities/${seg(city)}/plan', q: {
       'from': '$fLat,$fLon',

@@ -8,6 +8,8 @@ import '../api/models.dart' as m;
 import '../state/scope.dart';
 import '../util/style.dart';
 import '../widgets/common.dart';
+import '../widgets/report_sheet.dart';
+import 'ride_screen.dart';
 import 'stop_screen.dart';
 
 class LineScreen extends StatefulWidget {
@@ -31,7 +33,10 @@ class _LineScreenState extends State<LineScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AppScope.read(context).track('screen_line');
+      _load();
+    });
   }
 
   @override
@@ -214,6 +219,12 @@ class _LineScreenState extends State<LineScreen> with WidgetsBindingObserver {
           actions: [
             if (line != null)
               IconButton(
+                tooltip: 'Sorun bildir',
+                icon: const Icon(Icons.flag_outlined),
+                onPressed: () => showReportSheet(context, line: line),
+              ),
+            if (line != null)
+              IconButton(
                 icon: Icon(fav ? Icons.star : Icons.star_border, color: fav ? Colors.amber : null),
                 tooltip: fav ? 'Favorilerden çıkar' : 'Favorilere ekle',
                 onPressed: () => s.toggleFavorite('line', line.id, '${line.short} ${line.name}', modeName(line.mode)),
@@ -279,6 +290,20 @@ class _LineScreenState extends State<LineScreen> with WidgetsBindingObserver {
                         setState(() => _dir = v.first);
                         _drawLine();
                       },
+                    ),
+                  ),
+                if (d != null && _direction != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.tonalIcon(
+                        onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) => RideScreen(line: d.line, direction: _direction!),
+                        )),
+                        icon: const Icon(Icons.directions_bus_filled_outlined),
+                        label: const Text('Bu araca bindim · inilecek durakta uyar'),
+                      ),
                     ),
                   ),
                 if (d != null)

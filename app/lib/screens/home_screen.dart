@@ -10,17 +10,26 @@ import '../state/scope.dart';
 import '../util/style.dart';
 import '../util/text.dart';
 import '../widgets/common.dart';
+import 'line_screen.dart';
 import 'search_screen.dart';
 import 'stop_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.active = true});
+
+  /// False while another tab is shown: live polling pauses.
+  final bool active;
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   MapLibreMapController? _map;
+  List<m.NearbyVehicle> _buses = const [];
+  Timer? _busTimer;
+  bool _resumed = true;
+  double _zoom = 12;
+  bool _trackedNearbyBuses = false;
   bool _styleReady = false;
   String? _shownCity;
   int _shownStops = -1;
@@ -43,9 +52,84 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _busTimer = Timer(const Duration(seconds: 3), _pollBuses);
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _busTimer?.cancel();
     _state?.removeListener(_onState);
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(HomeScreen old) {
+    super.didUpdateWidget(old);
+    if (widget.active && !old.active) _pollBuses();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _resumed = state == AppLifecycleState.resumed;
+    if (_resumed) _pollBuses();
+  }
+
+  /// Live buses around the user (or the map centre). Runs only while the
+  /// map tab is visible, the app is in front and the map is zoomed in.
+  Future<void> _pollBuses() async {
+    _busTimer?.cancel();
+    final s = _state;
+    if (!mounted || s == null) return;
+    final canPoll = widget.active && _resumed && s.city.features.liveVehicles && _zoom >= 13;
+    if (canPoll) {
+      final lat = _followMe && s.myLat != null ? s.myLat! : _centerLat;
+      final lon = _followMe && s.myLon != null ? s.myLon! : _centerLon;
+      try {
+        final v = await s.api.nearbyVehicles(s.cityId, lat, lon);
+        if (!mounted) return;
+        setState(() => _buses = v);
+        if (!_trackedNearbyBuses && v.isNotEmpty) {
+          _trackedNearbyBuses = true;
+          s.track('nearby_vehicles');
+        }
+        await _drawBuses();
+      } catch (_) {}
+    } else if (_buses.isNotEmpty && !s.city.features.liveVehicles) {
+      setState(() => _buses = const []);
+      await _drawBuses();
+    }
+    if (mounted) _busTimer = Timer(const Duration(seconds: 15), _pollBuses);
+  }
+
+  Future<void> _drawBuses() async {
+    final c = _map;
+    if (c == null || !_styleReady) return;
+    try {
+      await c.setGeoJsonSource('buses', {
+        'type': 'FeatureCollection',
+        'features': [
+          for (final b in _buses)
+            {
+              'type': 'Feature',
+              'properties': {
+                'fid': '${b.lineId}#${b.id}',
+                'line': b.line,
+                'color': b.color.length == 6 ? '#${b.color}' : modeHex(b.mode),
+              },
+              'geometry': {
+                'type': 'Point',
+                'coordinates': [b.lon, b.lat],
+              },
+            },
+        ],
+      });
+    } catch (e) {
+      debugPrint('hibro buses: $e');
+    }
   }
 
   void _onState() {
@@ -149,6 +233,30 @@ class _HomeScreenState extends State<HomeScreen> {
         filter: ['==', ['get', 'mode'], 'bus'],
         minzoom: 14,
       );
+      await c.addGeoJsonSource('buses', {'type': 'FeatureCollection', 'features': <Map<String, dynamic>>[]}, promoteId: 'fid');
+      await c.addCircleLayer(
+        'buses',
+        'buses',
+        const CircleLayerProperties(
+          circleColor: ['get', 'color'],
+          circleRadius: 12,
+          circleStrokeColor: '#ffffff',
+          circleStrokeWidth: 2.5,
+        ),
+      );
+      await c.addSymbolLayer(
+        'buses',
+        'buses-label',
+        const SymbolLayerProperties(
+          textField: ['get', 'line'],
+          textSize: 10.5,
+          textColor: '#ffffff',
+          textFont: ['Noto Sans Bold'],
+          textAllowOverlap: true,
+          textIgnorePlacement: true,
+        ),
+        enableInteraction: false,
+      );
       await c.addGeoJsonSource('me', _meGeoJson());
       await c.addCircleLayer(
         'me',
@@ -162,10 +270,12 @@ class _HomeScreenState extends State<HomeScreen> {
         const CircleLayerProperties(circleColor: '#1E88E5', circleRadius: 7, circleStrokeColor: '#ffffff', circleStrokeWidth: 2.5),
         enableInteraction: false,
       );
-    } catch (_) {
+    } catch (e) {
       // Style reloaded (theme switch): layers are re-added on next load.
+      debugPrint('hibro map layers: $e');
     }
     _syncLayers();
+    _drawBuses();
   }
 
   Future<void> _syncLayers() async {
@@ -183,6 +293,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onFeatureTapped(Point<double> point, LatLng coords, String id, String layerId, Annotation? a) {
+    if (layerId == 'buses') {
+      final lineId = id.split('#').first;
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => LineScreen(lineId: lineId)));
+      return;
+    }
     if (!layerId.startsWith('stops')) return;
     final stop = _state?.stopById[id];
     if (stop != null) _openStop(stop);
@@ -197,11 +312,15 @@ class _HomeScreenState extends State<HomeScreen> {
     if (pos == null) return;
     _centerLat = pos.target.latitude;
     _centerLon = pos.target.longitude;
+    final zoomedIn = pos.zoom >= 13 && _zoom < 13;
+    _zoom = pos.zoom;
     _recomputeNearby();
+    if (zoomedIn) _pollBuses();
   }
 
   Future<void> _locateMe() async {
     final s = _state!;
+    s.track('locate_me');
     final ok = await s.startLocation();
     if (!mounted) return;
     if (!ok) {
@@ -216,8 +335,10 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     if (s.myLat == null) return;
     _followMe = true;
+    _zoom = 16;
     await _map?.animateCamera(CameraUpdate.newLatLngZoom(LatLng(s.myLat!, s.myLon!), 16));
     _recomputeNearby();
+    _pollBuses();
   }
 
   @override
@@ -280,6 +401,7 @@ class _HomeScreenState extends State<HomeScreen> {
           builder: (context, scroll) => _NearbySheet(
             scroll: scroll,
             nearby: _nearby,
+            buses: _buses,
             aroundMe: _followMe && s.myLat != null,
             onTap: _openStop,
             onLocate: _locateMe,
@@ -325,9 +447,10 @@ class _SearchBar extends StatelessWidget {
 }
 
 class _NearbySheet extends StatelessWidget {
-  const _NearbySheet({required this.scroll, required this.nearby, required this.aroundMe, required this.onTap, required this.onLocate});
+  const _NearbySheet({required this.scroll, required this.nearby, required this.buses, required this.aroundMe, required this.onTap, required this.onLocate});
   final ScrollController scroll;
   final List<NearbyStop> nearby;
+  final List<m.NearbyVehicle> buses;
   final bool aroundMe;
   final void Function(m.Stop) onTap;
   final VoidCallback onLocate;
@@ -358,6 +481,38 @@ class _NearbySheet extends StatelessWidget {
                 ),
               ]),
             ),
+            if (buses.isNotEmpty)
+              SizedBox(
+                height: 44,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8, top: 12),
+                      child: Row(children: [
+                        const LiveDot(),
+                        const SizedBox(width: 6),
+                        Text('${buses.length} otobüs yakında', style: t.textTheme.labelMedium),
+                      ]),
+                    ),
+                    for (final b in buses)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: ActionChip(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          label: Row(mainAxisSize: MainAxisSize.min, children: [
+                            LineBadge(text: b.line, mode: b.mode, color: b.color, dense: true),
+                            const SizedBox(width: 6),
+                            Text(formatDistance(b.distanceM)),
+                          ]),
+                          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => LineScreen(lineId: b.lineId))),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
           ]),
         ),
         if (nearby.isEmpty)

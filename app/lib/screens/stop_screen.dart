@@ -6,6 +6,7 @@ import '../api/models.dart';
 import '../state/scope.dart';
 import '../util/style.dart';
 import '../widgets/common.dart';
+import '../widgets/report_sheet.dart';
 import 'line_screen.dart';
 import 'plan_screen.dart';
 
@@ -26,7 +27,10 @@ class _StopScreenState extends State<StopScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AppScope.read(context).track('screen_stop');
+      _load();
+    });
   }
 
   @override
@@ -53,6 +57,7 @@ class _StopScreenState extends State<StopScreen> with WidgetsBindingObserver {
     try {
       final r = await s.api.arrivals(s.cityId, widget.stop.id);
       if (!mounted) return;
+      if (r.degraded) s.track('live_degraded');
       setState(() {
         _res = r;
         _error = null;
@@ -85,6 +90,11 @@ class _StopScreenState extends State<StopScreen> with WidgetsBindingObserver {
           Text(subtitle, style: t.textTheme.bodySmall),
         ]),
         actions: [
+          IconButton(
+            tooltip: 'Sorun bildir',
+            icon: const Icon(Icons.flag_outlined),
+            onPressed: () => showReportSheet(context, stop: st),
+          ),
           IconButton(
             tooltip: fav ? 'Favorilerden çıkar' : 'Favorilere ekle',
             icon: Icon(fav ? Icons.star : Icons.star_border, color: fav ? Colors.amber : null),
@@ -168,7 +178,18 @@ class _StopScreenState extends State<StopScreen> with WidgetsBindingObserver {
       ));
     }
     for (final a in r.arrivals) {
-      out.add(_ArrivalTile(a: a, onTap: () => _openLine(a.lineId)));
+      out.add(_ArrivalTile(
+        a: a,
+        onTap: () => _openLine(a.lineId),
+        onReport: () => showReportSheet(context, stop: widget.stop, line: AppScope.read(context).lineById[a.lineId], lineId: a.lineId, plate: a.plate),
+      ));
+    }
+    if (r.arrivals.isNotEmpty) {
+      out.add(Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+        child: Text('Bir araç gelmedi ya da çok mu kalabalık? Satıra basılı tutarak bildir.',
+            style: t.textTheme.bodySmall?.copyWith(color: t.colorScheme.onSurfaceVariant)),
+      ));
     }
     if (r.arrivals.isNotEmpty && !r.live) {
       out.add(Padding(
@@ -185,9 +206,9 @@ class _StopScreenState extends State<StopScreen> with WidgetsBindingObserver {
 }
 
 class _ArrivalTile extends StatelessWidget {
-  const _ArrivalTile({required this.a, required this.onTap});
+  const _ArrivalTile({required this.a, required this.onTap, required this.onReport});
   final Arrival a;
-  final VoidCallback onTap;
+  final VoidCallback onTap, onReport;
 
   @override
   Widget build(BuildContext context) {
@@ -200,9 +221,18 @@ class _ArrivalTile extends StatelessWidget {
     ];
     return ListTile(
       onTap: onTap,
+      onLongPress: onReport,
       leading: LineBadge(text: a.line, mode: a.mode, color: a.color),
       title: Text(a.headsign.isEmpty ? a.line : a.headsign, maxLines: 1, overflow: TextOverflow.ellipsis),
       subtitle: Row(children: [
+        if (a.crowded) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+            decoration: BoxDecoration(color: t.colorScheme.tertiaryContainer, borderRadius: BorderRadius.circular(4)),
+            child: Text('Kalabalık bildirildi', style: t.textTheme.labelSmall?.copyWith(color: t.colorScheme.onTertiaryContainer)),
+          ),
+          const SizedBox(width: 6),
+        ],
         if (a.accessible == true) ...[
           Icon(Icons.accessible, size: 16, color: t.colorScheme.primary),
           const SizedBox(width: 4),
