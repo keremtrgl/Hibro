@@ -1,0 +1,299 @@
+// Package city combines one or more data sources (a GTFS feed, a live
+// municipal API...) into a single city the API can serve.
+package city
+
+import (
+	"context"
+	"errors"
+	"sort"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/keremtrgl/hibro/server/internal/geo"
+	"github.com/keremtrgl/hibro/server/internal/model"
+	"github.com/keremtrgl/hibro/server/internal/textnorm"
+)
+
+var ErrNotFound = errors.New("not found")
+
+// Source is one provider of stops and lines inside a city, such as the
+// İzmir Metro GTFS feed or the ESHOT bus API. IDs it returns carry its
+// prefix ("m:12"); methods receive the local part ("12").
+type Source interface {
+	Prefix() string
+	Info() model.SourceInfo
+	Stops() []model.Stop
+	Lines() []model.Line
+	Line(ctx context.Context, localID string, now time.Time) (*model.LineDetail, error)
+	Arrivals(ctx context.Context, localStopID string, now time.Time) ([]model.Arrival, error)
+	Vehicles(ctx context.Context, localLineID string) ([]model.Vehicle, error)
+	Alerts(ctx context.Context, now time.Time) []model.Alert
+	Features() model.Features
+}
+
+type Meta struct {
+	ID     string
+	Name   string
+	Center model.LatLon
+	Zoom   float64
+}
+
+// City is an immutable snapshot. Reloading builds a new City.
+type City struct {
+	Meta     Meta
+	sources  map[string]Source
+	order    []Source
+	stops    []model.Stop
+	stopByID map[string]int
+	lines    []model.Line
+	lineByID map[string]int
+	index    *geo.Index
+	folded   []string // folded stop names for search
+	loadedAt time.Time
+	packOnce sync.Once
+	pack     []byte
+}
+
+func New(meta Meta, sources ...Source) *City {
+	c := &City{
+		Meta:     meta,
+		sources:  map[string]Source{},
+		stopByID: map[string]int{},
+		lineByID: map[string]int{},
+		loadedAt: time.Now(),
+	}
+	for _, s := range sources {
+		if s == nil {
+			continue
+		}
+		c.sources[s.Prefix()] = s
+		c.order = append(c.order, s)
+		for _, st := range s.Stops() {
+			c.stopByID[st.ID] = len(c.stops)
+			c.stops = append(c.stops, st)
+		}
+		for _, l := range s.Lines() {
+			c.lineByID[l.ID] = len(c.lines)
+			c.lines = append(c.lines, l)
+		}
+	}
+	lat := make([]float64, len(c.stops))
+	lon := make([]float64, len(c.stops))
+	c.folded = make([]string, len(c.stops))
+	for i, s := range c.stops {
+		lat[i], lon[i] = s.Lat, s.Lon
+		c.folded[i] = textnorm.Fold(s.Name)
+	}
+	c.index = geo.NewIndex(lat, lon)
+	sort.SliceStable(c.lines, func(a, b int) bool { return lineLess(c.lines[a], c.lines[b]) })
+	for i, l := range c.lines {
+		c.lineByID[l.ID] = i
+	}
+	return c
+}
+
+// lineLess orders rail before bus, then numerically by short name.
+func lineLess(a, b model.Line) bool {
+	ra, rb := modeRank(a.Mode), modeRank(b.Mode)
+	if ra != rb {
+		return ra < rb
+	}
+	na, nb := leadingInt(a.Short), leadingInt(b.Short)
+	if na != nb {
+		return na < nb
+	}
+	return a.Short < b.Short
+}
+
+func modeRank(m model.Mode) int {
+	switch m {
+	case model.ModeSubway:
+		return 0
+	case model.ModeRail:
+		return 1
+	case model.ModeTram:
+		return 2
+	case model.ModeFerry:
+		return 3
+	default:
+		return 4
+	}
+}
+
+func leadingInt(s string) int {
+	n, seen := 0, false
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			break
+		}
+		n, seen = n*10+int(r-'0'), true
+	}
+	if !seen {
+		return 1 << 30
+	}
+	return n
+}
+
+func (c *City) split(id string) (Source, string, error) {
+	p, local, ok := strings.Cut(id, ":")
+	if !ok {
+		return nil, "", ErrNotFound
+	}
+	s := c.sources[p]
+	if s == nil {
+		return nil, "", ErrNotFound
+	}
+	return s, local, nil
+}
+
+func (c *City) Info() model.CityInfo {
+	info := model.CityInfo{
+		ID: c.Meta.ID, Name: c.Meta.Name, Center: c.Meta.Center, Zoom: c.Meta.Zoom,
+		StopCount: len(c.stops), LineCount: len(c.lines), LoadedAt: c.loadedAt,
+	}
+	for _, s := range c.order {
+		info.Sources = append(info.Sources, s.Info())
+		f := s.Features()
+		info.Features.LiveArrivals = info.Features.LiveArrivals || f.LiveArrivals
+		info.Features.LiveVehicles = info.Features.LiveVehicles || f.LiveVehicles
+		info.Features.Alerts = info.Features.Alerts || f.Alerts
+	}
+	return info
+}
+
+func (c *City) Stops() []model.Stop { return c.stops }
+func (c *City) Lines() []model.Line { return c.lines }
+
+func (c *City) Stop(id string) (model.Stop, bool) {
+	i, ok := c.stopByID[id]
+	if !ok {
+		return model.Stop{}, false
+	}
+	return c.stops[i], true
+}
+
+func (c *City) LineInfo(id string) (model.Line, bool) {
+	i, ok := c.lineByID[id]
+	if !ok {
+		return model.Line{}, false
+	}
+	return c.lines[i], true
+}
+
+type NearbyStop struct {
+	model.Stop
+	DistanceM int `json:"distanceM"`
+}
+
+func (c *City) Nearby(lat, lon, radiusM float64, limit int) []NearbyStop {
+	hits := c.index.Near(lat, lon, radiusM, limit)
+	out := make([]NearbyStop, len(hits))
+	for i, h := range hits {
+		out[i] = NearbyStop{c.stops[h.Index], int(h.DistanceM)}
+	}
+	return out
+}
+
+type SearchResult struct {
+	Stops []model.Stop `json:"stops"`
+	Lines []model.Line `json:"lines"`
+}
+
+// Search matches lines by short name prefix and stops/lines by folded
+// substring. Exact line number matches come first.
+func (c *City) Search(q string, limit int) SearchResult {
+	fq := textnorm.Fold(q)
+	res := SearchResult{Stops: []model.Stop{}, Lines: []model.Line{}}
+	if fq == "" {
+		return res
+	}
+	var exact, prefix, other []model.Line
+	for _, l := range c.lines {
+		fs := textnorm.Fold(l.Short)
+		switch {
+		case fs == fq:
+			exact = append(exact, l)
+		case strings.HasPrefix(fs, fq):
+			prefix = append(prefix, l)
+		case strings.Contains(textnorm.Fold(l.Name), fq):
+			other = append(other, l)
+		}
+	}
+	res.Lines = append(append(append(res.Lines, exact...), prefix...), other...)
+	if len(res.Lines) > limit {
+		res.Lines = res.Lines[:limit]
+	}
+	type scored struct {
+		i     int
+		score int
+	}
+	var hits []scored
+	for i, f := range c.folded {
+		switch {
+		case f == fq:
+			hits = append(hits, scored{i, 0})
+		case strings.HasPrefix(f, fq):
+			hits = append(hits, scored{i, 1})
+		case strings.Contains(f, fq):
+			hits = append(hits, scored{i, 2})
+		case c.stops[i].Code != "" && c.stops[i].Code == q:
+			hits = append(hits, scored{i, 0})
+		}
+	}
+	sort.SliceStable(hits, func(a, b int) bool { return hits[a].score < hits[b].score })
+	for _, h := range hits {
+		if len(res.Stops) >= limit {
+			break
+		}
+		res.Stops = append(res.Stops, c.stops[h.i])
+	}
+	return res
+}
+
+func (c *City) Line(ctx context.Context, id string, now time.Time) (*model.LineDetail, error) {
+	s, local, err := c.split(id)
+	if err != nil {
+		return nil, err
+	}
+	return s.Line(ctx, local, now)
+}
+
+func (c *City) Arrivals(ctx context.Context, stopID string, now time.Time) ([]model.Arrival, error) {
+	s, local, err := c.split(stopID)
+	if err != nil {
+		return nil, err
+	}
+	if _, ok := c.stopByID[stopID]; !ok {
+		return nil, ErrNotFound
+	}
+	return s.Arrivals(ctx, local, now)
+}
+
+func (c *City) Vehicles(ctx context.Context, lineID string) ([]model.Vehicle, error) {
+	s, local, err := c.split(lineID)
+	if err != nil {
+		return nil, err
+	}
+	return s.Vehicles(ctx, local)
+}
+
+func (c *City) Alerts(ctx context.Context, now time.Time) []model.Alert {
+	out := []model.Alert{}
+	for _, s := range c.order {
+		out = append(out, s.Alerts(ctx, now)...)
+	}
+	return out
+}
+
+// Pack returns the offline bundle (built once per snapshot).
+func (c *City) Pack() model.Pack {
+	return model.Pack{City: c.Info(), Stops: c.stops, Lines: c.lines}
+}
+
+// PackJSON caches the encoded pack; encoding is supplied by the caller
+// so this package stays free of HTTP concerns.
+func (c *City) PackJSON(encode func(model.Pack) []byte) []byte {
+	c.packOnce.Do(func() { c.pack = encode(c.Pack()) })
+	return c.pack
+}

@@ -1,0 +1,20 @@
+# Go
+/server/data-cache/
+/server/hibro-server
+# Flutter
+/app/.dart_tool/
+/app/build/
+/app/.flutter-plugins
+/app/.flutter-plugins-dependencies
+/app/android/.gradle/
+/app/android/local.properties
+/app/android/app/upload-keystore.jks
+/app/android/key.properties
+/app/ios/Pods/
+/app/ios/.symlinks/
+*.iml
+.idea/
+.DS_Store
+# Deploy
+/deploy/.env
+/deploy/data/
