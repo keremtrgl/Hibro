@@ -3,6 +3,7 @@
 package api
 
 import (
+	"bytes"
 	"compress/gzip"
 	"context"
 	"crypto/sha1"
@@ -159,6 +160,32 @@ func writeJSON(w http.ResponseWriter, status int, v any, maxAge time.Duration) {
 	_ = enc.Encode(v)
 }
 
+// writeCached writes a cacheable JSON response with an ETag and answers
+// 304 Not Modified when the client already has the same body. The app
+// keeps ETags in memory, so revisiting a line or the alerts list costs a
+// few hundred bytes instead of the whole response.
+func writeCached(w http.ResponseWriter, r *http.Request, v any, maxAge time.Duration) {
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	if err := enc.Encode(v); err != nil {
+		fail(w, http.StatusInternalServerError, "kodlama hatası")
+		return
+	}
+	sum := sha1.Sum(buf.Bytes())
+	etag := `"` + hex.EncodeToString(sum[:8]) + `"`
+	h := w.Header()
+	h.Set("ETag", etag)
+	h.Set("Cache-Control", "public, max-age="+strconv.Itoa(int(maxAge.Seconds())))
+	if r.Header.Get("If-None-Match") == etag {
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
+	h.Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(buf.Bytes())
+}
+
 func fail(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, apiError{msg}, 0)
 }
@@ -222,13 +249,13 @@ func (s *Server) cities(w http.ResponseWriter, r *http.Request) {
 		info.Features.Planner = s.Planner != nil
 		out = append(out, info)
 	}
-	writeJSON(w, http.StatusOK, out, 5*time.Minute)
+	writeCached(w, r, out, 5*time.Minute)
 }
 
 func (s *Server) cityInfo(w http.ResponseWriter, r *http.Request, c *city.City) {
 	info := c.Info()
 	info.Features.Planner = s.Planner != nil
-	writeJSON(w, http.StatusOK, info, 5*time.Minute)
+	writeCached(w, r, info, 5*time.Minute)
 }
 
 // pack serves the full offline bundle with an ETag so the app only
@@ -239,8 +266,10 @@ func (s *Server) pack(w http.ResponseWriter, r *http.Request, c *city.City) {
 		b, _ := json.Marshal(p)
 		return b
 	})
-	sum := sha1.Sum(body)
-	etag := `"` + hex.EncodeToString(sum[:8]) + `"`
+	// The ETag covers only what the app stores (stops, lines, names,
+	// sources), not load timestamps: a daily reload with unchanged data
+	// must not make every phone download the pack again.
+	etag := c.PackVersion()
 	h := w.Header()
 	h.Set("ETag", etag)
 	h.Set("Cache-Control", "public, max-age=3600")
@@ -279,7 +308,7 @@ func (s *Server) stop(w http.ResponseWriter, r *http.Request, c *city.City) {
 		fail(w, http.StatusNotFound, "durak bulunamadı")
 		return
 	}
-	writeJSON(w, http.StatusOK, st, time.Hour)
+	writeCached(w, r, st, time.Hour)
 }
 
 type arrivalsResp struct {
@@ -325,7 +354,7 @@ func (s *Server) arrivals(w http.ResponseWriter, r *http.Request, c *city.City) 
 }
 
 func (s *Server) lines(w http.ResponseWriter, r *http.Request, c *city.City) {
-	writeJSON(w, http.StatusOK, c.Lines(), time.Hour)
+	writeCached(w, r, c.Lines(), time.Hour)
 }
 
 func (s *Server) line(w http.ResponseWriter, r *http.Request, c *city.City) {
@@ -342,7 +371,7 @@ func (s *Server) line(w http.ResponseWriter, r *http.Request, c *city.City) {
 		}
 		return
 	}
-	writeJSON(w, http.StatusOK, ld, 10*time.Minute)
+	writeCached(w, r, ld, 10*time.Minute)
 }
 
 func (s *Server) vehicles(w http.ResponseWriter, r *http.Request, c *city.City) {
@@ -359,7 +388,7 @@ func (s *Server) vehicles(w http.ResponseWriter, r *http.Request, c *city.City) 
 }
 
 func (s *Server) alerts(w http.ResponseWriter, r *http.Request, c *city.City) {
-	writeJSON(w, http.StatusOK, c.Alerts(r.Context(), s.now()), 5*time.Minute)
+	writeCached(w, r, c.Alerts(r.Context(), s.now()), 5*time.Minute)
 }
 
 func (s *Server) search(w http.ResponseWriter, r *http.Request, c *city.City) {
@@ -367,7 +396,7 @@ func (s *Server) search(w http.ResponseWriter, r *http.Request, c *city.City) {
 	if len([]rune(q)) > 64 {
 		q = string([]rune(q)[:64])
 	}
-	writeJSON(w, http.StatusOK, c.Search(q, 25), time.Minute)
+	writeCached(w, r, c.Search(q, 25), time.Minute)
 }
 
 func (s *Server) nearbyVehicles(w http.ResponseWriter, r *http.Request, c *city.City) {

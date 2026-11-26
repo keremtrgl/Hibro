@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 
 import '../api/models.dart';
+import '../state/app_state.dart';
 import '../state/scope.dart';
 import '../util/style.dart';
 import '../widgets/common.dart';
@@ -69,10 +70,22 @@ class _StopScreenState extends State<StopScreen> with WidgetsBindingObserver {
       if (mounted) {
         setState(() => _loading = false);
         _timer?.cancel();
-        final live = _res?.live == true || s.city.features.liveArrivals && widget.stop.mode == Mode.bus;
-        _timer = Timer(Duration(seconds: live ? 15 : 60), _load);
+        _timer = Timer(_nextInterval(s), _load);
       }
     }
+  }
+
+  /// Adaptive refresh: fast only when it matters.
+  ///  - planned timetable only: 2 min (times do not move)
+  ///  - live, next vehicle more than 10 min away: 30 s
+  ///  - live, a vehicle is close: 15 s
+  /// Doubled in data-saver mode.
+  Duration _nextInterval(AppState s) {
+    final r = _res;
+    final live = r?.live == true;
+    if (!live) return s.liveInterval(120);
+    final soonest = (r?.arrivals.isEmpty ?? true) ? 99 : r!.arrivals.first.minutes;
+    return s.liveInterval(soonest > 10 ? 30 : 15);
   }
 
   @override

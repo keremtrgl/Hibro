@@ -92,7 +92,7 @@ class _LineScreenState extends State<LineScreen> with WidgetsBindingObserver {
       retrySoon = true;
       if (mounted) setState(() => _liveOk ??= false);
     }
-    if (mounted) _timer = Timer(Duration(seconds: retrySoon ? 3 : 10), _pollVehicles);
+    if (mounted) _timer = Timer(retrySoon ? const Duration(seconds: 3) : s.liveInterval(10), _pollVehicles);
   }
 
   m.Direction? get _direction {

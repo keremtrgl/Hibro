@@ -69,6 +69,7 @@ class AppState extends ChangeNotifier {
     favorites = (jsonDecode(prefs.getString('favs') ?? '[]') as List)
         .map((e) => Favorite.fromJson(e as Map<String, dynamic>))
         .toList();
+    dataSaver = prefs.getBool('dataSaver') ?? false;
     consentAsked = prefs.getBool('consentAsked') ?? false;
     shareUsage = prefs.getBool('shareUsage') ?? false;
     shareTrips = prefs.getBool('shareTrips') ?? false;
@@ -77,6 +78,18 @@ class AppState extends ChangeNotifier {
   // ---- privacy choices (all off until the user turns them on) ----
 
   late bool consentAsked, shareUsage, shareTrips;
+
+  /// "Veri tasarrufu": slower live refresh, no automatic nearby buses.
+  late bool dataSaver;
+
+  Future<void> setDataSaver(bool v) async {
+    dataSaver = v;
+    await prefs.setBool('dataSaver', v);
+    notifyListeners();
+  }
+
+  /// Polling interval for live data, doubled in data-saver mode.
+  Duration liveInterval(int seconds) => Duration(seconds: dataSaver ? seconds * 2 : seconds);
 
   Future<void> setConsent({bool? usage, bool? trips}) async {
     if (usage != null) {
@@ -175,7 +188,12 @@ class AppState extends ChangeNotifier {
     unawaited(_refreshCities());
     if (!hasCity) return; // wait for detection or a manual choice
     await _loadCachedPack();
-    unawaited(refresh());
+    // The pack changes rarely; check at most every 6 hours (a check
+    // that finds no change costs ~200 bytes thanks to the ETag).
+    final last = DateTime.tryParse(prefs.getString('packAt_$cityId') ?? '');
+    if (stops.isEmpty || last == null || DateTime.now().difference(last) > const Duration(hours: 6)) {
+      unawaited(refresh());
+    }
   }
 
   /// Finds the city from the current location. Returns (city, located):

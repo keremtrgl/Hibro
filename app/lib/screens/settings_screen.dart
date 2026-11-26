@@ -47,6 +47,19 @@ class SettingsScreen extends StatelessWidget {
             RadioListTile(value: AppThemeMode.dark, title: Text('Koyu')),
           ]),
         ),
+        _section(t, 'Veri kullanımı'),
+        SwitchListTile(
+          secondary: const Icon(Icons.data_saver_on_outlined),
+          value: s.dataSaver,
+          onChanged: s.setDataSaver,
+          title: const Text('Veri tasarrufu'),
+          subtitle: const Text('Canlı bilgiler daha seyrek yenilenir, yakındaki otobüsler yalnızca "Konumum"a basınca yüklenir.'),
+        ),
+        ListTile(
+          leading: const Icon(Icons.swap_vert),
+          title: const Text('Bu oturumda Hibro sunucusundan'),
+          subtitle: Text('${(s.api.bytesReceived / 1024).toStringAsFixed(1)} KB indirildi · harita karoları telefonda 150 MB\'a kadar saklanır'),
+        ),
         _section(t, 'Gizlilik ve veri'),
         ListTile(
           leading: const Icon(Icons.privacy_tip_outlined),

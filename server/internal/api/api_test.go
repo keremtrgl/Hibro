@@ -143,3 +143,36 @@ func TestPackGzipAndETag(t *testing.T) {
 		t.Fatalf("304: code=%d body=%d enc=%q", resp.StatusCode, len(body), resp.Header.Get("Content-Encoding"))
 	}
 }
+
+func TestPackETagStableAcrossReloads(t *testing.T) {
+	a := city.New(city.Meta{ID: "test", Name: "Test"}, fakeSource{})
+	time.Sleep(2 * time.Millisecond)
+	b := city.New(city.Meta{ID: "test", Name: "Test"}, fakeSource{})
+	if a.PackVersion() != b.PackVersion() {
+		t.Fatal("same data must give the same pack version after a reload")
+	}
+}
+
+func TestConditionalLines(t *testing.T) {
+	ts := newTestServer(fakeSource{})
+	defer ts.Close()
+	resp, err := http.Get(ts.URL + "/v1/cities/test/lines")
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	etag := resp.Header.Get("ETag")
+	if etag == "" {
+		t.Fatal("no ETag on cacheable endpoint")
+	}
+	req, _ := http.NewRequest("GET", ts.URL+"/v1/cities/test/lines", nil)
+	req.Header.Set("If-None-Match", etag)
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusNotModified {
+		t.Fatalf("revalidation -> %d", resp.StatusCode)
+	}
+}

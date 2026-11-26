@@ -87,7 +87,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _busTimer?.cancel();
     final s = _state;
     if (!mounted || s == null) return;
-    final canPoll = widget.active && _resumed && s.city.features.liveVehicles && _zoom >= 13;
+    // Data saver: nearby buses only after the user taps "Konumum".
+    final canPoll = widget.active && _resumed && s.city.features.liveVehicles && _zoom >= 13 && (!s.dataSaver || _followMe);
     if (canPoll) {
       final lat = _followMe && s.myLat != null ? s.myLat! : _centerLat;
       final lon = _followMe && s.myLon != null ? s.myLon! : _centerLon;
@@ -105,7 +106,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       setState(() => _buses = const []);
       await _drawBuses();
     }
-    if (mounted) _busTimer = Timer(const Duration(seconds: 15), _pollBuses);
+    if (mounted) _busTimer = Timer(s.liveInterval(15), _pollBuses);
   }
 
   Future<void> _drawBuses() async {

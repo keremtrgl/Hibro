@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
+import 'package:maplibre_gl/maplibre_gl.dart' show setMaximumAmbientCacheSize;
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -13,6 +15,13 @@ import 'widgets/consent_sheet.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Keep up to 150 MB of map tiles on the phone (default 50 MB) so the
+  // user's own city is rarely downloaded twice. Not supported on web.
+  if (!kIsWeb) {
+    try {
+      await setMaximumAmbientCacheSize(150 * 1024 * 1024);
+    } catch (_) {}
+  }
   final prefs = await SharedPreferences.getInstance();
   final state = AppState(prefs);
   runApp(AppScope(state: state, child: const HibroApp()));

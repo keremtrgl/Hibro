@@ -63,7 +63,7 @@ func decode(w http.ResponseWriter, r *http.Request, max int64, v any) bool {
 }
 
 func (s *Server) reportKinds(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, collect.ReportKinds, time.Hour)
+	writeCached(w, r, collect.ReportKinds, time.Hour)
 }
 
 func (s *Server) postReport(w http.ResponseWriter, r *http.Request, c *city.City) {

@@ -4,6 +4,9 @@ package city
 
 import (
 	"context"
+	"crypto/sha1"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"sort"
 	"strings"
@@ -53,6 +56,9 @@ type City struct {
 	loadedAt time.Time
 	packOnce sync.Once
 	pack     []byte
+
+	versionOnce sync.Once
+	version     string
 }
 
 func New(meta Meta, sources ...Source) *City {
@@ -380,6 +386,24 @@ func (c *City) Alerts(ctx context.Context, now time.Time) []model.Alert {
 // Pack returns the offline bundle (built once per snapshot).
 func (c *City) Pack() model.Pack {
 	return model.Pack{City: c.Info(), Stops: c.stops, Lines: c.lines}
+}
+
+// PackVersion is a quoted ETag over the content the app keeps offline
+// (stops, lines and stable city/source fields), excluding timestamps.
+func (c *City) PackVersion() string {
+	c.versionOnce.Do(func() {
+		h := sha1.New()
+		enc := json.NewEncoder(h)
+		info := c.Info()
+		_ = enc.Encode([]any{info.ID, info.Name, info.Center, info.Bounds, info.Zoom, info.Features})
+		for _, src := range info.Sources {
+			_ = enc.Encode([]any{src.Name, src.License, src.URL, src.Stale, src.Note})
+		}
+		_ = enc.Encode(c.stops)
+		_ = enc.Encode(c.lines)
+		c.version = `"` + hex.EncodeToString(h.Sum(nil)[:8]) + `"`
+	})
+	return c.version
 }
 
 // PackJSON caches the encoded pack; encoding is supplied by the caller
