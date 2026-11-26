@@ -154,9 +154,12 @@ type Features struct {
 }
 
 type CityInfo struct {
-	ID        string       `json:"id"`
-	Name      string       `json:"name"`
-	Center    LatLon       `json:"center"`
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Center LatLon `json:"center"`
+	// Bounds is [minLat, minLon, maxLat, maxLon] around all stops; the app
+	// uses it to pick the user's city from their location.
+	Bounds    [4]float64   `json:"bounds"`
 	Zoom      float64      `json:"zoom"`
 	StopCount int          `json:"stopCount"`
 	LineCount int          `json:"lineCount"`

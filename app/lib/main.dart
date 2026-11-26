@@ -8,6 +8,7 @@ import 'screens/home_screen.dart';
 import 'screens/settings_screen.dart';
 import 'state/app_state.dart';
 import 'state/scope.dart';
+import 'widgets/city_sheet.dart';
 import 'widgets/consent_sheet.dart';
 
 Future<void> main() async {
@@ -62,10 +63,31 @@ class _ShellState extends State<_Shell> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final s = AppScope.read(context);
-      if (!s.consentAsked) showConsentSheet(context);
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _firstRun());
+  }
+
+  /// First launch: privacy choices, then find the city from the location.
+  /// No city data is downloaded until the city is known.
+  Future<void> _firstRun() async {
+    final s = AppScope.read(context);
+    if (!s.consentAsked) await showConsentSheet(context);
+    if (!mounted || s.hasCity) return;
+    final r = await s.detectFromLocation();
+    if (!mounted) return;
+    final city = r.city;
+    if (city != null) {
+      await s.selectCity(city.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Konumuna göre ${city.name} seçildi.')));
+      }
+      return;
+    }
+    await showCitySheet(
+      context,
+      reason: r.located
+          ? 'Bulunduğun şehir henüz desteklenmiyor. Başka bir şehre bakmak istersen seçebilirsin; hiçbir veri gereksiz yere indirilmez.'
+          : 'Konum alınamadı. Şehrini elle seçebilirsin.',
+    );
   }
 
   @override

@@ -87,7 +87,7 @@ Son güncelleme: 26 Kasım 2026
   - [ ] İETT SOAP adaptörü: hat, durak, planlı sefer, **filo konumu → GTFS-RT**
   - [ ] Metro, Metrobüs, Marmaray, Şehir Hatları, Marmaray-İETT aktarma
   - [ ] Ölçek testi: İstanbul ~ 800+ hat, MOTIS RAM ve yanıt süresi ölçülecek
-- [ ] Şehir seçimi ve otomatik şehir algılama
+- [x] Şehir seçimi ve otomatik şehir algılama: konumdan şehir bulunur, desteklenmeyen şehirde hiçbir veri indirilmez, telefonda yalnızca seçili şehrin paketi tutulur, seyahatte "şehri değiştir" önerisi
 - [x] **Çevrimdışı şehir paketleri:** JSON + ETag (İzmir 400 KB gzip). Yakındaki duraklar ve arama internetsiz çalışır.
 - [x] Servis duyuruları: İzmir (İETT duyuru servisi İstanbul ile gelecek)
 - [ ] Bildirim: "Favori hattında aksama var"

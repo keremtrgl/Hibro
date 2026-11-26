@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../api/client.dart';
 import '../api/models.dart';
+import '../util/city_detect.dart';
 import '../util/geo.dart';
 import '../util/text.dart';
 
@@ -18,11 +19,16 @@ const appVersion = 'hibro-0.2';
 
 /// Cities known at build time, so the map can open instantly on first
 /// launch before anything is downloaded.
+/// Bounds come from the server (26.11.2026) and are refreshed from
+/// /v1/cities at start-up.
 final builtInCities = <CityInfo>[
-  CityInfo(id: 'izmir', name: 'İzmir', lat: 38.4237, lon: 27.1428, zoom: 12.5),
-  CityInfo(id: 'konya', name: 'Konya', lat: 37.8746, lon: 32.4932, zoom: 12.5),
-  CityInfo(id: 'gaziantep', name: 'Gaziantep', lat: 37.0662, lon: 37.3833, zoom: 12.5),
+  CityInfo(id: 'izmir', name: 'İzmir', lat: 38.4237, lon: 27.1428, zoom: 12.5, bounds: [37.8192, 26.2848, 39.364, 28.2391]),
+  CityInfo(id: 'konya', name: 'Konya', lat: 37.8746, lon: 32.4932, zoom: 12.5, bounds: [37.6213, 32.3097, 38.2523, 32.9269]),
+  CityInfo(id: 'gaziantep', name: 'Gaziantep', lat: 37.0662, lon: 37.3833, zoom: 12.5, bounds: [36.7003, 36.5829, 37.4057, 38.0246]),
 ];
+
+/// Map view of Türkiye, used before a city is chosen.
+final turkeyView = CityInfo(id: '', name: 'Türkiye', lat: 39.0, lon: 35.2, zoom: 4.8);
 
 class Favorite {
   final String kind; // 'stop' | 'line'
@@ -152,13 +158,40 @@ class AppState extends ChangeNotifier {
   StreamSubscription<Position>? _posSub;
   bool locationDenied = false;
 
-  CityInfo get city => cityInfo ?? cities.firstWhere((c) => c.id == cityId, orElse: () => builtInCities.first);
+  CityInfo get city => !hasCity
+      ? turkeyView
+      : cityInfo ?? cities.firstWhere((c) => c.id == cityId, orElse: () => builtInCities.first);
+
+  /// False until the user's city is known. Nothing is downloaded before.
+  bool get hasCity => prefs.containsKey('city');
+
+  /// A different supported city the user is currently in (travel).
+  CityInfo? suggestedCity;
+  bool _suggestionDismissed = false;
 
   Future<void> init() async {
     track('app_open');
+    unawaited(_refreshCities());
+    if (!hasCity) return; // wait for detection or a manual choice
     await _loadCachedPack();
     unawaited(refresh());
-    unawaited(_refreshCities());
+  }
+
+  /// Finds the city from the current location. Returns (city, located):
+  /// city is null when the user is outside every supported city.
+  Future<({CityInfo? city, bool located})> detectFromLocation() async {
+    if (!await startLocation()) return (city: null, located: false);
+    for (var i = 0; i < 40 && myLat == null; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+    }
+    if (myLat == null) return (city: null, located: false);
+    return (city: detectCity(cities, myLat!, myLon!), located: true);
+  }
+
+  void dismissSuggestion() {
+    suggestedCity = null;
+    _suggestionDismissed = true;
+    notifyListeners();
   }
 
   Future<void> _refreshCities() async {
@@ -201,6 +234,7 @@ class AppState extends ChangeNotifier {
 
   /// Fetches the city pack; only downloads when the server's copy changed.
   Future<void> refresh() async {
+    if (!hasCity) return;
     loading = true;
     error = null;
     notifyListeners();
@@ -228,9 +262,11 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> selectCity(String id) async {
-    if (id == cityId) return;
+    if (id == cityId && hasCity) return;
     cityId = id;
+    suggestedCity = null;
     await prefs.setString('city', id);
+    await _deleteOtherPacks(id);
     cityInfo = null;
     stops = const [];
     lines = const [];
@@ -241,11 +277,24 @@ class AppState extends ChangeNotifier {
     await refresh();
   }
 
+  /// Only the current city's data stays on the phone.
+  Future<void> _deleteOtherPacks(String keep) async {
+    final ids = {...cities.map((c) => c.id), ...builtInCities.map((c) => c.id)}..remove(keep);
+    for (final id in ids) {
+      try {
+        final f = await _packFile(id);
+        if (f != null && await f.exists()) await f.delete();
+      } catch (_) {}
+      await prefs.remove('etag_$id');
+      await prefs.remove('packAt_$id');
+    }
+  }
+
   Future<void> setApiUrl(String url) async {
     api.baseUrl = url.trim();
     await prefs.setString('api', api.baseUrl);
     await prefs.remove('etag_$cityId');
-    await refresh();
+    if (hasCity) await refresh();
     await _refreshCities();
   }
 
@@ -306,6 +355,11 @@ class AppState extends ChangeNotifier {
   void _setPos(Position p) {
     myLat = p.latitude;
     myLon = p.longitude;
+    // Travelling: offer to switch when the user is in another supported city.
+    if (hasCity && !_suggestionDismissed) {
+      final here = detectCity(cities, p.latitude, p.longitude);
+      suggestedCity = here != null && here.id != cityId ? here : null;
+    }
     notifyListeners();
   }
 

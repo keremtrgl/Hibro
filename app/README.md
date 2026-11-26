@@ -4,6 +4,7 @@ Reklamsız, izleyicisiz toplu taşıma uygulaması. Android, iOS ve web.
 
 ## Özellikler
 
+- Konumdan otomatik şehir seçimi; yalnızca bulunduğun şehrin verisi iner (desteklenmeyen şehirde hiçbir şey indirilmez)
 - Harita (MapLibre + OpenFreeMap, API anahtarı ve izleme yok)
 - Yakındaki duraklar: **çevrimdışı**, cihazdaki şehir paketinden hesaplanır
 - Durak ekranı: canlı varışlar (İzmir), planlı seferler (metro, tramvay, Konya, Gaziantep), 15 sn'de bir otomatik yenileme, uygulama arka plandayken durur

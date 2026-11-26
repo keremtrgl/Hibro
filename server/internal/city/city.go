@@ -152,6 +152,10 @@ func (c *City) Info() model.CityInfo {
 		ID: c.Meta.ID, Name: c.Meta.Name, Center: c.Meta.Center, Zoom: c.Meta.Zoom,
 		StopCount: len(c.stops), LineCount: len(c.lines), LoadedAt: c.loadedAt,
 	}
+	if len(c.stops) > 0 {
+		a, b, cc, d := c.Bounds(0.02)
+		info.Bounds = [4]float64{round4(a), round4(b), round4(cc), round4(d)}
+	}
 	for _, s := range c.order {
 		info.Sources = append(info.Sources, s.Info())
 		f := s.Features()
@@ -340,6 +344,15 @@ func (c *City) Bounds(margin float64) (minLat, minLon, maxLat, maxLon float64) {
 		minLon, maxLon = min(minLon, s.Lon), max(maxLon, s.Lon)
 	}
 	return minLat - margin, minLon - margin, maxLat + margin, maxLon + margin
+}
+
+func round4(v float64) float64 { return float64(int64(v*10000+0.5*sign(v))) / 10000 }
+
+func sign(v float64) float64 {
+	if v < 0 {
+		return -1
+	}
+	return 1
 }
 
 // LiveStop reports whether the stop's source provides live arrivals.

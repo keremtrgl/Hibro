@@ -19,9 +19,10 @@ class _AlertsScreenState extends State<AlertsScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final s = AppScope.of(context);
-    if (_city != s.cityId) {
-      _city = s.cityId;
-      _future = s.api.alerts(s.cityId);
+    final key = s.hasCity ? s.cityId : null; // nothing is fetched before a city is chosen
+    if (_city != key) {
+      _city = key;
+      _future = key == null ? null : s.api.alerts(key);
     }
   }
 
@@ -33,12 +34,16 @@ class _AlertsScreenState extends State<AlertsScreen> {
       appBar: AppBar(title: const Text('Duyurular')),
       body: RefreshIndicator(
         onRefresh: () async {
+          if (!s.hasCity) return;
           setState(() => _future = s.api.alerts(s.cityId));
           await _future;
         },
         child: FutureBuilder<List<Alert>>(
           future: _future,
           builder: (context, snap) {
+            if (_future == null) {
+              return ListView(children: const [EmptyState(icon: Icons.location_city, title: 'Önce şehrini seç')]);
+            }
             if (snap.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
             if (snap.hasError) {
               return ListView(children: [EmptyState(icon: Icons.cloud_off, title: 'Duyurular alınamadı', body: '${snap.error}')]);

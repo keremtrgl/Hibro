@@ -17,7 +17,7 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(children: [
         _section(t, 'Şehir'),
         RadioGroup<String>(
-          groupValue: s.cityId,
+          groupValue: s.hasCity ? s.cityId : null,
           onChanged: (v) => v == null ? null : s.selectCity(v),
           child: Column(children: [
             for (final c in s.cities)

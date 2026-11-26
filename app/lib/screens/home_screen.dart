@@ -12,6 +12,7 @@ import '../util/text.dart';
 import '../widgets/common.dart';
 import 'line_screen.dart';
 import 'search_screen.dart';
+import '../widgets/city_sheet.dart';
 import 'stop_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -34,6 +35,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   String? _shownCity;
   int _shownStops = -1;
   double _centerLat = 0, _centerLon = 0;
+  String? _cameraCity; // city the camera was last moved to
   bool _followMe = false;
   List<NearbyStop> _nearby = const [];
   AppState? _state;
@@ -47,6 +49,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _state = s..addListener(_onState);
       _centerLat = s.city.lat;
       _centerLon = s.city.lon;
+      _cameraCity = s.hasCity ? s.cityId : null;
       _recomputeNearby();
     }
   }
@@ -134,8 +137,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   void _onState() {
     final s = _state!;
-    if (_shownCity != null && _shownCity != s.cityId) {
-      // City changed: fly there.
+    if (s.hasCity && _cameraCity != s.cityId) {
+      // City chosen or changed: fly there.
+      _cameraCity = s.cityId;
       _centerLat = s.city.lat;
       _centerLon = s.city.lon;
       _map?.moveCamera(CameraUpdate.newLatLngZoom(LatLng(s.city.lat, s.city.lon), s.city.zoom));
@@ -370,9 +374,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
             child: Column(children: [
-              _SearchBar(cityName: s.city.name, onTap: () {
-                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchScreen()));
-              }),
+              _SearchBar(
+                cityName: s.hasCity ? s.city.name : 'Şehir seç',
+                onTap: () {
+                  if (!s.hasCity) {
+                    showCitySheet(context);
+                    return;
+                  }
+                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchScreen()));
+                },
+              ),
               if (s.error != null && s.stops.isEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
@@ -389,6 +400,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ),
               if (s.loading && s.stops.isEmpty)
                 const Padding(padding: EdgeInsets.only(top: 8), child: LinearProgressIndicator()),
+              if (s.suggestedCity != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Material(
+                    color: theme.colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                    child: ListTile(
+                      dense: true,
+                      leading: Icon(Icons.near_me, color: theme.colorScheme.onPrimaryContainer),
+                      title: Text('Konumun: ${s.suggestedCity!.name}. Şehri değiştirelim mi?',
+                          style: TextStyle(color: theme.colorScheme.onPrimaryContainer)),
+                      trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                        TextButton(onPressed: s.dismissSuggestion, child: const Text('Hayır')),
+                        FilledButton(onPressed: () => s.selectCity(s.suggestedCity!.id), child: const Text('Değiştir')),
+                      ]),
+                    ),
+                  ),
+                ),
             ]),
           ),
         ),
@@ -520,7 +549,11 @@ class _NearbySheet extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Text(
-                s.stops.isEmpty ? 'Şehir verisi yükleniyor…' : 'Yakında durak yok. Haritayı kaydır veya yakınlaştır.',
+                !s.hasCity
+                    ? 'Şehir seçilmedi. Arama çubuğundaki "Şehir seç"e dokun.'
+                    : s.stops.isEmpty
+                        ? 'Şehir verisi yükleniyor…'
+                        : 'Yakında durak yok. Haritayı kaydır veya yakınlaştır.',
                 textAlign: TextAlign.center,
                 style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant),
               ),

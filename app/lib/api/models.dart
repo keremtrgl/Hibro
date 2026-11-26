@@ -106,6 +106,7 @@ class CityInfo {
   final int stopCount, lineCount;
   final Features features;
   final List<SourceInfo> sources;
+  final List<double>? bounds; // [minLat, minLon, maxLat, maxLon]
   CityInfo({
     required this.id,
     required this.name,
@@ -116,6 +117,7 @@ class CityInfo {
     this.lineCount = 0,
     this.features = const Features(),
     this.sources = const [],
+    this.bounds,
   });
   factory CityInfo.fromJson(Map<String, dynamic> j) {
     final c = (j['center'] as List?) ?? const [0, 0];
@@ -129,6 +131,7 @@ class CityInfo {
       lineCount: _i(j['lineCount']),
       features: Features.fromJson(j['features'] as Map<String, dynamic>?),
       sources: ((j['sources'] as List?) ?? const []).map((e) => SourceInfo.fromJson(e as Map<String, dynamic>)).toList(),
+      bounds: (j['bounds'] as List?)?.map(_d).toList(),
     );
   }
 }

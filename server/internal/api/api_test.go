@@ -82,6 +82,11 @@ func TestEndpoints(t *testing.T) {
 	if code := getJSON(t, ts.URL+"/v1/cities/nope/lines", nil); code != 404 {
 		t.Fatalf("unknown city -> %d", code)
 	}
+	var cities []model.CityInfo
+	getJSON(t, ts.URL+"/v1/cities", &cities)
+	if len(cities) != 1 || cities[0].Bounds[0] > 38.4062 || cities[0].Bounds[2] < 38.4189 {
+		t.Fatalf("city bounds should cover all stops: %+v", cities)
+	}
 	var lines []model.Line
 	getJSON(t, ts.URL+"/v1/cities/test/lines", &lines)
 	if len(lines) != 2 || lines[0].Short != "5" {
