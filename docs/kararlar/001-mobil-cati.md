@@ -5,7 +5,7 @@
 
 ## Bağlam
 
-Android ve iOS için tek bir uygulama gerekiyor. Hedefler: APK < 15 MB, soğuk açılış < 1 sn, akıcı harita, çevrimdışı mod. Ekip küçük.
+Android ve iOS için tek bir uygulama gerekiyor. Hedefler: soğuk açılış < 1 sn, akıcı harita, çevrimdışı mod. Ekip küçük.
 
 İki aday değerlendirildi: **Flutter** ve **Kotlin Multiplatform + Compose Multiplatform (KMP)**.
 
@@ -17,7 +17,7 @@ Android ve iOS için tek bir uygulama gerekiyor. Hedefler: APK < 15 MB, soğuk a
 | Harita (MapLibre) | ✅ `maplibre_gl`, yaygın kullanılıyor | ⚠️ `maplibre-compose`, daha genç |
 | Çevrimdışı SQLite | ✅ `drift` / `sqflite` | ✅ SQLDelight |
 | Ana ekran widget'ı, Wear OS | ⚠️ Native kod gerekir (`home_widget`) | ✅ Android'de doğal |
-| APK boyutu (ABI başına) | ~7-10 MB taban, hedef 15 MB'a ulaşılabilir | ~4-6 MB taban |
+| APK boyutu (ABI başına) | ~7-10 MB taban (sorun değil) | ~4-6 MB taban |
 | Geliştirme hızı, hot reload | ✅ Çok hızlı | Orta |
 | Öğrenme kaynağı (Türkçe dahil) | ✅ Çok fazla | Az |
 | Kullanıcının hissedeceği performans | Arayüz 60/120 fps, Impeller ile takılma yok | Native, çok az daha iyi |
@@ -26,14 +26,14 @@ Android ve iOS için tek bir uygulama gerekiyor. Hedefler: APK < 15 MB, soğuk a
 
 **Flutter.** Bu projede asıl yük haritada ve veride. Flutter'ın MapLibre desteği daha olgun, geliştirme hızı daha yüksek. Moovit'i yavaşlatan şey çatısı değil: reklam ve izleme SDK'ları, açılışta yapılan ağ çağrıları ve ağır başlangıç akışı. Hibro bunları zaten tasarımdan çıkarıyor.
 
-KMP'nin tek net avantajı daha küçük APK ve doğal Android widget'ı. Widget ve Wear OS için gereken küçük native parçalar Flutter'da platform kanalıyla yazılır.
+KMP'nin tek net avantajı daha küçük APK ve doğal Android widget'ı. Boyut bu projede öncelik değil. Widget ve Wear OS için gereken küçük native parçalar Flutter'da platform kanalıyla yazılır.
 
 ## Performans kuralları (Flutter'a özel)
 
 - `flutter build apk --split-per-abi --obfuscate --split-debug-info` ile yayın. Play Store'a AAB yüklenir.
 - Açılışta yalnızca yerel SQLite okunur. Ağ, ilk kare çizildikten sonra başlar.
 - Firebase Analytics, Crashlytics ve reklam paketleri **yasak.** Çökme raporu için self-hosted GlitchTip (Sentry uyumlu), opt-in.
-- Paket eklerken boyut etkisi CI'da ölçülür. APK 15 MB'ı geçerse build kırılır.
+- Boyut için katı sınır yok. Öncelik hız ve akıcılık. Boyut yine de her sürümde raporlanır ki sessizce şişmesin.
 - Durum yönetimi: Riverpod. Veritabanı: drift. Harita: maplibre_gl. HTTP/SSE: dio.
 
 ## Ne zaman yeniden değerlendirilir?

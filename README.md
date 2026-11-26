@@ -9,7 +9,7 @@
 | Sorun (Moovit vb.) | Hibro'nun cevabı |
 |---|---|
 | Tam ekran reklamlar, banner'lar, "Premium'a geç" baskısı | **Hiç reklam yok. Hiçbir zaman.** Reklam SDK'sı koda girmeyecek. |
-| Ağır uygulama (100+ MB), yavaş açılış | Hedef: **< 15 MB APK**, **< 1 sn soğuk açılış** |
+| Ağır uygulama (100+ MB), yavaş açılış | Hedef: **< 1 sn soğuk açılış**, akıcı harita, gereksiz SDK yok |
 | Konum ve kullanım verisinin reklam ağlarıyla paylaşılması | İzleyici (tracker) yok. Analitik yalnızca opt-in ve kendi sunucumuzda. |
 | İnternet yoksa çalışmaz | **Çevrimdışı mod:** hat, durak ve sefer saatleri cihazda |
 | Belediye verisinden gecikmeli veya hatalı bilgi | Doğrudan belediye GTFS ve canlı API'lerinden veri, şeffaf kaynak gösterimi |

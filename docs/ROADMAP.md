@@ -12,7 +12,7 @@ Son güncelleme: 26 Kasım 2026
 | Alan | Moovit (gözlem) | Hibro hedefi | Nasıl |
 |---|---|---|---|
 | Reklam | Banner, tam ekran, rota arası reklam | **0** | Reklam SDK'sı yok. Gelir: bağış, destekçi üyeliği, B2B. |
-| Uygulama boyutu | ~100 MB+ | **< 15 MB** (Android APK) | İzleme/reklam SDK'sı yok, vektör harita, SVG |
+| Uygulama boyutu | ~100 MB+ | Makul (katı sınır yok) | İzleme/reklam SDK'sı yok, vektör harita, SVG |
 | Soğuk açılış | 2-4 sn | **< 1 sn** (orta seviye Android) | İlk ekran tamamen yerel SQLite'tan |
 | "Yakındaki duraklar" | Ağ çağrısı bekler | **< 100 ms, internetsiz** | Çevrimdışı şehir paketi |
 | Rota hesaplama | 1-3 sn | **p95 < 800 ms** | MOTIS + cache |
@@ -63,7 +63,7 @@ Son güncelleme: 26 Kasım 2026
 - [ ] "Veri kaynakları ve lisanslar" ekranı
 
 ### Kalite kapısı
-- [ ] APK < 15 MB, soğuk açılış < 1 sn (Moto G / Redmi sınıfı cihazda)
+- [ ] Soğuk açılış < 1 sn, harita 60 fps (Moto G / Redmi sınıfı cihazda)
 - [ ] Rota p95 < 800 ms
 - [ ] 20 kişilik kapalı beta (İzmir), sonra Play Store "açık test"
 
@@ -134,7 +134,7 @@ Hedef maliyet (Faz 2 sonu): 2 VPS (TR ingest + API/MOTIS), CDN. Aylık ~ 50-150 
 
 | Metrik | Hedef |
 |---|---|
-| APK boyutu | < 15 MB |
+| Harita akıcılığı | 60 fps (orta segment) |
 | Soğuk açılış (orta segment Android) | < 1.0 sn |
 | Yakındaki duraklar (yerel) | < 100 ms |
 | Rota planlama p95 (sunucu) | < 800 ms |
@@ -162,7 +162,7 @@ Hedef maliyet (Faz 2 sonu): 2 VPS (TR ingest + API/MOTIS), CDN. Aylık ~ 50-150 
 ## Hemen sonraki 5 adım
 
 1. Repoyu **gizli** yap (GitHub → Settings → Danger Zone → Change visibility)
-2. Türkiye VPS'i kirala (4 vCPU / 8 GB / 80 GB NVMe), ESHOT ve İBB GTFS'ini oradan indir
+2. Türkiye VPS'i kirala (2 vCPU / 4 GB / 40 GB yeterli), ESHOT ve İBB GTFS'ini oradan indir
 3. `app/` Flutter iskeleti: harita + İzmir durakları + canlı otobüsler
 4. `ingest/` iskeleti: `feeds.yaml` okuyucu + `gtfs-validator` entegrasyonu
 5. İzmir RT köprüsü: belediye JSON → GTFS-Realtime

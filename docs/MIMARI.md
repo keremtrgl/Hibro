@@ -72,8 +72,14 @@ Ayrıntılar ve performans kuralları: [Karar 001](kararlar/001-mobil-cati.md).
 
 | Aşama | vCPU | RAM | Disk | Ne çalışır |
 |---|---|---|---|---|
-| Faz 0-1 (İzmir) | 4 | 8 GB | 80 GB NVMe | Ingest, RT köprüsü, MOTIS, API, Postgres, Redis (tek makine, Docker Compose) |
-| Faz 2 (+ İstanbul) | 8 | 16-32 GB | 160 GB NVMe | MOTIS İstanbul + OSM Türkiye verisi RAM ister |
+| Faz 0-1 (İzmir, beta) | 2 | 4 GB | 40 GB SSD | Hepsi tek makinede, Docker Compose |
+| Faz 2 (+ İstanbul, Konya, Gaziantep) | 4 | 8 GB | 80 GB | Kullanıcı ve şehir sayısı artınca yükseltilir |
+
+Neden bu kadar küçük yeterli:
+- OSM verisinin tamamı (Türkiye) değil, yalnızca şehir sınırı kesilir (`osmium extract`). İzmir kesiti ~100 MB, tüm Türkiye ~1 GB+.
+- RAM'i asıl tüketen MOTIS ön işlemesidir. Bu işlem kendi bilgisayarında yapılıp hazır veri sunucuya yüklenebilir. Sunucu yalnızca çalıştırır.
+- Canlı veri cache'lenir. 100 kişi aynı hattı izlese bile belediyeye tek istek gider.
+- Darboğaz görülürse VPS paneldeki tek tıkla büyütülür. Baştan büyük almaya gerek yok.
 
 Seçim kriterleri:
 - Türkiye lokasyonu (İstanbul veya Ankara veri merkezi), statik IPv4
