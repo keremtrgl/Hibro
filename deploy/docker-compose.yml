@@ -1,0 +1,45 @@
+# Hibro production stack for a single Türkiye VPS.
+#   cp .env.example .env   # set HIBRO_DOMAIN
+#   docker compose up -d --build
+services:
+  hibro:
+    build: ../server
+    restart: unless-stopped
+    environment:
+      HIBRO_CITIES: ${HIBRO_CITIES:-izmir,konya,gaziantep}
+      HIBRO_REFRESH: ${HIBRO_REFRESH:-24h}
+      HIBRO_MOTIS_URL: ${HIBRO_MOTIS_URL:-}
+      HIBRO_LOG_LEVEL: ${HIBRO_LOG_LEVEL:-info}
+    volumes:
+      - ./data/hibro:/data
+    expose:
+      - "8080"
+    mem_limit: 1g
+
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    depends_on: [hibro]
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      HIBRO_DOMAIN: ${HIBRO_DOMAIN:?HIBRO_DOMAIN .env dosyasında ayarlanmalı}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./data/caddy:/data
+
+  # Optional journey planner. Enable with: docker compose --profile planner up -d
+  # Prepare data first with ./motis/prepare.sh (see README). Then set
+  # HIBRO_MOTIS_URL=http://motis:8080 in .env and restart hibro.
+  motis:
+    profiles: [planner]
+    image: ghcr.io/motis-project/motis:${MOTIS_VERSION:-latest}
+    restart: unless-stopped
+    working_dir: /data
+    command: ["motis", "server"]
+    volumes:
+      - ./data/motis:/data
+    expose:
+      - "8080"

@@ -106,6 +106,11 @@ func TestParseArrivals(t *testing.T) {
 	if _, err := ParseArrivals([]byte("  "), "b", now); err == nil {
 		t.Fatal("empty body must be an error so it is retried")
 	}
+	// The same arrival 10 minutes later: its GPS fix is stale, so it is dropped.
+	stale, err := ParseArrivals(read(t, "yaklasan.json"), "b", now.Add(10*time.Minute))
+	if err != nil || len(stale) != 0 {
+		t.Fatalf("stale GPS fix should be dropped: %v %+v", err, stale)
+	}
 	none, err := ParseArrivals([]byte(`{"Data":{"data":null,"error":{"code":1000,"message":"Durak bulunamadı."}}}`), "b", now)
 	if err != nil || len(none) != 0 {
 		t.Fatalf("unknown stop: %v %v", err, none)

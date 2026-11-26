@@ -2,7 +2,27 @@
 
 **Reklamsız, hızlı, açık veriyle çalışan toplu taşıma uygulaması.** Moovit, Ekomobil ve benzeri uygulamalara alternatif.
 
-> Durum: **Planlama aşaması** (Kasım 2026). Henüz kod yok, bu repo yol haritasını ve veri envanterini tutuyor.
+> Durum: **Çalışan MVP** (Kasım 2026). İzmir canlı otobüs takibi, İzmir metro/tramvay, Konya ve Gaziantep sefer saatleri gerçek verilerle çalışıyor.
+
+![Hibro ekranları: harita, canlı varışlar, canlı araçlı hat, duyurular, ayarlar](docs/img/ekranlar.png)
+
+## Repo yapısı
+
+| Klasör | İçerik |
+|---|---|
+| [`server/`](server/) | Go API sunucusu: belediye verisini toplar, cache'ler, tek tip JSON sunar |
+| [`app/`](app/) | Flutter uygulaması (Android, iOS, web) |
+| [`deploy/`](deploy/) | Türkiye VPS kurulumu: Docker Compose + otomatik HTTPS, adım adım rehber |
+| [`docs/`](docs/) | Yol haritası, veri envanteri, mimari ve kararlar |
+
+## Hızlı başlangıç
+
+```bash
+# Sunucu
+cd server && go run ./cmd/hibro-server            # http://localhost:8080
+# Uygulama (başka terminalde)
+cd app && flutter run --dart-define=HIBRO_API=http://localhost:8080
+```
 
 ## Neden Hibro?
 

@@ -297,6 +297,7 @@ func (s *Server) arrivals(w http.ResponseWriter, r *http.Request, c *city.City) 
 	if resp.Arrivals == nil {
 		resp.Arrivals = []model.Arrival{}
 	}
+	resp.Live = c.LiveStop(id)
 	for _, a := range arr {
 		resp.Live = resp.Live || a.Realtime
 	}

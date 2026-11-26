@@ -18,3 +18,5 @@
 # Deploy
 /deploy/.env
 /deploy/data/
+/app/android/build/
+/app/android/.kotlin/

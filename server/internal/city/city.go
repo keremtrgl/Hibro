@@ -270,6 +270,12 @@ func (c *City) Arrivals(ctx context.Context, stopID string, now time.Time) ([]mo
 	return s.Arrivals(ctx, local, now)
 }
 
+// LiveStop reports whether the stop's source provides live arrivals.
+func (c *City) LiveStop(stopID string) bool {
+	s, _, err := c.split(stopID)
+	return err == nil && s.Features().LiveArrivals
+}
+
 func (c *City) Vehicles(ctx context.Context, lineID string) ([]model.Vehicle, error) {
 	s, local, err := c.split(lineID)
 	if err != nil {

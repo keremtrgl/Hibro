@@ -42,25 +42,27 @@ Son güncelleme: 26 Kasım 2026
 
 ## Faz 1: MVP, İzmir (6-8 hafta)
 
+> **Durum (26 Kasım 2026):** Faz 1'in büyük kısmı tamamlandı. Aşağıda ✅ olanlar gerçek veriyle test edildi.
+
 **Neden İzmir?** Metro, tramvay ve otobüs GTFS'i var. **Anahtarsız canlı otobüs konumu ve durağa yaklaşan araç API'si** var. Türkiye'deki en iyi açık veri seti.
 
 ### Backend
-- [ ] Ingest servisi: `feeds.yaml` okuyucu, gece çekimi, hash kontrolü, doğrulama
-- [ ] İzmir adaptörü: koordinat düzeltmesi (`KoorX`↔`KoorY`, virgül→nokta), hat/durak ID eşleme
-- [ ] **RT köprüsü:** İzmir JSON → GTFS-Realtime `VehiclePositions`
-- [ ] MOTIS kurulumu: ESHOT + Metro + Tramvay + OSM yürüme ağı
-- [ ] API: `/nearby`, `/stop/{id}/departures`, `/route/{id}`, `/plan`, `/live/route/{id}` (SSE)
+- [x] Ingest servisi: `feeds.yaml` okuyucu, gece çekimi, hash kontrolü, doğrulama
+- [x] İzmir adaptörü: koordinat düzeltmesi (`KoorX`↔`KoorY`, virgül→nokta), hat/durak ID eşleme
+- [ ] **RT köprüsü:** İzmir JSON → GTFS-Realtime `VehiclePositions` (canlı veri şimdilik kendi API'mizden sunuluyor; GTFS-RT çıktısı MOTIS gecikme entegrasyonu için gerekli)
+- [ ] MOTIS kurulumu: ESHOT + Metro + Tramvay + OSM yürüme ağı (`deploy/motis/prepare.sh` hazır, VPS'te test edilecek)
+- [x] API: `/nearby`, `/stop/{id}/departures`, `/route/{id}`, `/plan`, `/live/route/{id}` (SSE)
 - [ ] Gözlemlenebilirlik: feed tazeliği, API gecikmesi, hata oranı panosu
 
 ### Mobil uygulama
-- [ ] Harita (MapLibre + OSM vektör karo) ve yakındaki duraklar
-- [ ] Durak ekranı: planlı + canlı varışlar, "canlı" ve "planlı" etiketleri net ayrılmış
-- [ ] Hat ekranı: güzergâh ve haritada canlı otobüsler
-- [ ] A→B rota planlama (yürüme + aktarma)
-- [ ] Favoriler (durak, hat, ev/iş) cihazda saklanır, hesap gerekmez
-- [ ] Türkçe + İngilizce
-- [ ] Karanlık mod
-- [ ] "Veri kaynakları ve lisanslar" ekranı
+- [x] Harita (MapLibre + OSM vektör karo) ve yakındaki duraklar
+- [x] Durak ekranı: planlı + canlı varışlar, "canlı" ve "planlı" etiketleri net ayrılmış
+- [x] Hat ekranı: güzergâh ve haritada canlı otobüsler
+- [x] A→B rota planlama arayüzü ve sunucu istemcisi (MOTIS kurulunca açılır)
+- [x] Favoriler (durak, hat, ev/iş) cihazda saklanır, hesap gerekmez
+- [ ] Türkçe + İngilizce (şu an yalnızca Türkçe)
+- [x] Karanlık mod
+- [x] "Veri kaynakları ve lisanslar" ekranı
 
 ### Kalite kapısı
 - [ ] Soğuk açılış < 1 sn, harita 60 fps (Moto G / Redmi sınıfı cihazda)
@@ -71,17 +73,23 @@ Son güncelleme: 26 Kasım 2026
 
 ---
 
+## Bulunan veri sorunları ve çözümleri
+
+- **Hayalet araçlar:** ESHOT canlı API'si GPS'i saatlerdir güncellenmeyen araçları da "yaklaşıyor" diye gönderiyor (öğlen bir durakta gece 02:13'ten kalma gece otobüsleri). Hibro GPS'i 5 dakikadan eski kayıtları gizliyor. Bu, Moovit'e göre somut bir doğruluk avantajı.
+- **ESHOT durak sırası yok:** API hat-durak ilişkisi vermiyor. ESHOT GTFS'i TR IP'den inince hat ekranındaki "Duraklar" sekmesi dolacak.
+- **İzmir Metro M1 iki ayrı hat olarak yayınlanıyor:** Sunucu aynı numaralı yönleri tek hatta birleştiriyor.
+
 ## Faz 2: Çok şehir ve İstanbul (8-10 hafta)
 
-- [ ] **Konya** ve **Gaziantep** (hazır GTFS, eklemesi en kolay şehirler)
+- [x] **Konya** ve **Gaziantep** (hazır GTFS, eklemesi en kolay şehirler)
 - [ ] **İstanbul:**
   - [ ] İBB GTFS ingest (TR VPS üzerinden)
   - [ ] İETT SOAP adaptörü: hat, durak, planlı sefer, **filo konumu → GTFS-RT**
   - [ ] Metro, Metrobüs, Marmaray, Şehir Hatları, Marmaray-İETT aktarma
   - [ ] Ölçek testi: İstanbul ~ 800+ hat, MOTIS RAM ve yanıt süresi ölçülecek
 - [ ] Şehir seçimi ve otomatik şehir algılama
-- [ ] **Çevrimdışı şehir paketleri:** SQLite olarak indirilir, haftalık delta güncelleme
-- [ ] Servis duyuruları (İzmir CSV, İETT duyuru servisi → GTFS-RT `Alerts`)
+- [x] **Çevrimdışı şehir paketleri:** JSON + ETag (İzmir 400 KB gzip). Yakındaki duraklar ve arama internetsiz çalışır.
+- [x] Servis duyuruları: İzmir (İETT duyuru servisi İstanbul ile gelecek)
 - [ ] Bildirim: "Favori hattında aksama var"
 
 **Çıkış kriteri:** 5 şehir, 10.000 aktif kullanıcı.

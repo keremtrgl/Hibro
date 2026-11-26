@@ -20,17 +20,41 @@ type Source struct {
 	feed    *Feed
 	info    model.SourceInfo
 	stopIDs map[string]int32 // local stop id -> index (only boardable stops)
+	// Some agencies publish each direction of one line as its own route
+	// (İzmir Metro: route 1 "Evka 3 – Narlıdere" and route 2 the reverse,
+	// both "M1"). Routes sharing agency, short name and type are merged
+	// into one line; canon maps every route to the group's first route.
+	canon   []int32
+	members map[int32][]int32
 }
 
 func NewSource(prefix string, f *Feed, info model.SourceInfo) *Source {
-	s := &Source{prefix: prefix, feed: f, info: info, stopIDs: map[string]int32{}}
+	s := &Source{prefix: prefix, feed: f, info: info, stopIDs: map[string]int32{}, members: map[int32][]int32{}}
 	for i, st := range f.Stops {
 		if st.LocationType == 0 {
 			s.stopIDs[st.ID] = int32(i)
 		}
 	}
+	s.canon = make([]int32, len(f.Routes))
+	first := map[string]int32{}
+	for i, r := range f.Routes {
+		ri := int32(i)
+		s.canon[ri] = ri
+		if r.Short != "" {
+			key := r.Agency + "|" + r.Short + "|" + fmt.Sprint(r.Type)
+			if c, ok := first[key]; ok {
+				s.canon[ri] = c
+			} else {
+				first[key] = ri
+			}
+		}
+		s.members[s.canon[ri]] = append(s.members[s.canon[ri]], ri)
+	}
 	return s
 }
+
+// lineID returns the public (merged) line id for a route index.
+func (s *Source) lineID(ri int32) string { return s.id(s.feed.Routes[s.canon[ri]].ID) }
 
 func (s *Source) Prefix() string           { return s.prefix }
 func (s *Source) Info() model.SourceInfo   { return s.info }
@@ -50,9 +74,13 @@ func (s *Source) Stops() []model.Stop {
 		}
 		mode := model.ModeBus
 		lines := make([]string, 0, len(f.StopLines[i]))
+		seen := map[string]bool{}
 		best := 99
 		for _, ri := range f.StopLines[i] {
-			lines = append(lines, s.id(f.Routes[ri].ID))
+			if id := s.lineID(ri); !seen[id] {
+				seen[id] = true
+				lines = append(lines, id)
+			}
 			m := s.routeMode(ri)
 			if r := rank(m); r < best {
 				best, mode = r, m
@@ -88,7 +116,7 @@ func (s *Source) line(ri int32) model.Line {
 		ID: s.id(r.ID), Short: short, Name: r.Long, Mode: s.routeMode(ri),
 		Color: r.Color, TextColor: r.TextColor,
 	}
-	if rep, ok := s.feed.RepTrip[[2]int32{ri, 0}]; ok {
+	if rep, ok := s.repTrip(ri); ok {
 		sts := s.feed.TripStops[rep]
 		if len(sts) > 0 {
 			l.From = s.feed.Stops[sts[0].Stop].Name
@@ -98,10 +126,23 @@ func (s *Source) line(ri int32) model.Line {
 	return l
 }
 
+// repTrip finds a representative trip for a (merged) line, preferring
+// direction 0 of the first member route that has one.
+func (s *Source) repTrip(ri int32) (int32, bool) {
+	for _, dir := range []int32{0, 1} {
+		for _, m := range s.members[s.canon[ri]] {
+			if t, ok := s.feed.RepTrip[[2]int32{m, dir}]; ok {
+				return t, true
+			}
+		}
+	}
+	return 0, false
+}
+
 func (s *Source) Lines() []model.Line {
 	used := map[int32]bool{}
 	for key := range s.feed.RepTrip {
-		used[key[0]] = true
+		used[s.canon[key[0]]] = true
 	}
 	out := make([]model.Line, 0, len(used))
 	for ri := range s.feed.Routes {
@@ -135,14 +176,24 @@ func (s *Source) Line(_ context.Context, local string, now time.Time) (*model.Li
 	if !ok {
 		return nil, ErrNotFound
 	}
+	ri = s.canon[ri]
 	day := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	d := &model.LineDetail{Line: s.line(ri), DayType: DayType(day)}
-	for dir := int32(0); dir <= 1; dir++ {
-		rep, ok := f.RepTrip[[2]int32{ri, dir}]
-		if !ok {
-			continue
+	type variant struct{ route, dir int32 }
+	var variants []variant
+	for _, dir := range []int32{0, 1} {
+		for _, m := range s.members[ri] {
+			if _, ok := f.RepTrip[[2]int32{m, dir}]; ok {
+				variants = append(variants, variant{m, dir})
+			}
 		}
-		dd := model.Direction{Index: int(dir), Headsign: f.Headsign(rep)}
+	}
+	if len(variants) > 3 {
+		variants = variants[:3]
+	}
+	for vi, v := range variants {
+		rep := f.RepTrip[[2]int32{v.route, v.dir}]
+		dd := model.Direction{Index: vi, Headsign: f.Headsign(rep)}
 		for _, st := range f.TripStops[rep] {
 			stop := f.Stops[st.Stop]
 			dd.Stops = append(dd.Stops, model.StopRef{ID: s.id(stop.ID), Name: stop.Name, Lat: stop.Lat, Lon: stop.Lon})
@@ -156,7 +207,7 @@ func (s *Source) Line(_ context.Context, local string, now time.Time) (*model.Li
 		}
 		var deps []int32
 		for ti, tr := range f.Trips {
-			if tr.Route != ri || int32(tr.Dir) != dir || len(f.TripStops[ti]) == 0 {
+			if tr.Route != v.route || int32(tr.Dir) != v.dir || len(f.TripStops[ti]) == 0 {
 				continue
 			}
 			if f.Active(tr.Service, day) {
@@ -219,7 +270,7 @@ func (s *Source) Arrivals(_ context.Context, local string, now time.Time) ([]mod
 			mins = 0
 		}
 		out = append(out, model.Arrival{
-			LineID: s.id(r.ID), Line: short, Headsign: hs, Mode: s.routeMode(tr.Route),
+			LineID: s.lineID(tr.Route), Line: short, Headsign: hs, Mode: s.routeMode(tr.Route),
 			Color: r.Color, Minutes: mins, Time: d.At.Format("15:04"),
 			StopsAway: 0,
 		})

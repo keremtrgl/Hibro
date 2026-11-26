@@ -59,6 +59,12 @@ Lisans: İzmir Büyükşehir Belediyesi Açık Veri Lisansı
 | Metro/Tramvay durak arası mesafeler | portal: `izmir-metro-tramvay-durak-mesafeleri` | |
 | Taksi durakları | `https://openapi.izmir.bel.tr/api/ibb/cbs/taksiduraklari` | |
 
+> ✅ **Kod ile doğrulandı (26.11.2026):** Hat listesi (448 hat), durak listesi (12.012 durak), hareket saatleri (63.512 sefer), güzergâh CSV'si (572 bin nokta), duyurular ve canlı API'lerin hepsi Hibro sunucusunda çalışıyor. ESHOT için GTFS'e gerek kalmadan otobüs verisi tam. Eksik olan tek şey hat-durak sırası.
+>
+> ⚠️ **Hayalet araçlar:** `DuragaYaklasanOtobusler` yanıtında GPS zamanı saatler önce olan araçlar da var. `gpsTime` alanı 5 dakikadan eskiyse kayıt atılmalı.
+>
+> ⚠️ **Boş yanıt:** Canlı API ara sıra boş gövde döndürüyor. Yeniden deneme gerekli.
+
 > ⚠️ **Dikkat:** `hatotobuskonumlari` yanıtında alan adları ters: `KoorX` = **enlem** (38.x), `KoorY` = **boylam** (27.x). Ondalık ayırıcı **virgül** (`"38,404575"`). Adaptörde normalize edilmeli.
 
 Resmi doküman: <https://openfiles.izmir.bel.tr/471231/docs/iztek-WebServisKullanimDokumani_1.0.pdf>

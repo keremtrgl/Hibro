@@ -1,0 +1,13 @@
+# Caddy gets and renews a free HTTPS certificate automatically.
+{$HIBRO_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy hibro:8080
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+	log {
+		# Access logs off: no IPs or coordinates stored.
+		output discard
+	}
+}

@@ -1,0 +1,24 @@
+# Docker kullanmak istemeyenler için systemd servisi.
+# sudo cp hibro-server /usr/local/bin/ && sudo cp hibro.service /etc/systemd/system/
+# sudo systemctl enable --now hibro
+[Unit]
+Description=Hibro toplu taşıma API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=hibro
+Environment=HIBRO_ADDR=127.0.0.1:8080
+Environment=HIBRO_DATA_DIR=/var/lib/hibro
+StateDirectory=hibro
+ExecStart=/usr/local/bin/hibro-server
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+MemoryMax=1G
+
+[Install]
+WantedBy=multi-user.target

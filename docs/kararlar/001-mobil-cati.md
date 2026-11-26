@@ -34,7 +34,7 @@ KMP'nin tek net avantajı daha küçük APK ve doğal Android widget'ı. Boyut b
 - Açılışta yalnızca yerel SQLite okunur. Ağ, ilk kare çizildikten sonra başlar.
 - Firebase Analytics, Crashlytics ve reklam paketleri **yasak.** Çökme raporu için self-hosted GlitchTip (Sentry uyumlu), opt-in.
 - Boyut için katı sınır yok. Öncelik hız ve akıcılık. Boyut yine de her sürümde raporlanır ki sessizce şişmesin.
-- Durum yönetimi: Riverpod. Veritabanı: drift. Harita: maplibre_gl. HTTP/SSE: dio.
+- Durum yönetimi: Flutter'ın kendi `ChangeNotifier` + `InheritedNotifier` yapısı (ek kütüphane yok). Çevrimdışı paket: JSON dosyası. Harita: maplibre_gl + OpenFreeMap. HTTP: http paketi.
 
 ## Ne zaman yeniden değerlendirilir?
 

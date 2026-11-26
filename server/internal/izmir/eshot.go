@@ -341,14 +341,21 @@ type rawArrival struct {
 	Electric       bool    `json:"electric"`
 	Direction      int     `json:"direction"`
 	Plate          string  `json:"plate"`
+	GPSTime        string  `json:"gpsTime"`
 	StationOrder   int     `json:"stationOrder"`
 	TargetOrder    int     `json:"targetStationOrder"`
 	DistanceTarget float64 `json:"distanceToTarget"`
 	DurationTarget float64 `json:"durationToTarget"` // seconds
 }
 
+// MaxGPSAge is how old a vehicle's last GPS fix may be before its
+// arrival is dropped. The ESHOT feed keeps reporting vehicles whose
+// tracker went silent hours ago (night buses still "3 minutes away" at
+// noon); showing those would be worse than showing nothing.
+const MaxGPSAge = 5 * time.Minute
+
 // ParseArrivals decodes the DuragaYaklasanOtobusler response. An unknown
-// stop yields an empty list, not an error.
+// stop yields an empty list, not an error. Stale GPS fixes are skipped.
 func ParseArrivals(b []byte, prefix string, now time.Time) ([]model.Arrival, error) {
 	if len(bytes.TrimSpace(b)) == 0 {
 		return nil, errors.New("eshot: empty response")
@@ -367,6 +374,9 @@ func ParseArrivals(b []byte, prefix string, now time.Time) ([]model.Arrival, err
 	}
 	out := make([]model.Arrival, 0, len(env.Data.Data))
 	for _, r := range env.Data.Data {
+		if gps, err := time.Parse(time.RFC3339, r.GPSTime); err == nil && now.Sub(gps) > MaxGPSAge {
+			continue
+		}
 		secs := int(r.DurationTarget)
 		at := now.Add(time.Duration(secs) * time.Second)
 		// direction 0 travels from "starting" towards "ending".

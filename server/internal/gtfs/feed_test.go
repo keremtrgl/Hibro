@@ -114,3 +114,29 @@ func TestRealFeeds(t *testing.T) {
 			name, len(f.Stops), len(src.Stops()), len(src.Lines()), len(f.Trips), time.Since(start).Round(time.Millisecond))
 	}
 }
+
+func TestMergesRoutesPublishedPerDirection(t *testing.T) {
+	files := map[string]string{}
+	for k, v := range tiny {
+		files[k] = v
+	}
+	files["routes.txt"] = "route_id,agency_id,route_short_name,route_long_name,route_type\nR1,A,M1,Konak - Basmane,1\nR2,A,M1,Basmane - Konak,1\n"
+	files["trips.txt"] = "route_id,service_id,trip_id,trip_headsign,direction_id\nR1,WK,T1,,0\nR1,WK,T2,Basmane,0\nR1,WE,T3,Basmane,0\nR2,WK,T4,Konak,1\n"
+	f, err := Parse(buildZip(t, files))
+	if err != nil {
+		t.Fatal(err)
+	}
+	src := NewSource("m", f, model.SourceInfo{})
+	if ls := src.Lines(); len(ls) != 1 || ls[0].ID != "m:R1" {
+		t.Fatalf("lines = %+v", ls)
+	}
+	for _, st := range src.Stops() {
+		if len(st.Lines) != 1 || st.Lines[0] != "m:R1" {
+			t.Fatalf("stop %s lines = %v", st.ID, st.Lines)
+		}
+	}
+	ld, err := src.Line(context.Background(), "R2", time.Date(2026, 11, 26, 7, 0, 0, 0, time.UTC))
+	if err != nil || len(ld.Directions) != 2 || ld.Directions[1].Headsign != "Konak" {
+		t.Fatalf("merged detail: %v %+v", err, ld)
+	}
+}
