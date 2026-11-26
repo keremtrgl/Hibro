@@ -14,7 +14,7 @@ import '../util/city_detect.dart';
 import '../util/geo.dart';
 import '../util/text.dart';
 
-const defaultApiUrl = String.fromEnvironment('HIBRO_API', defaultValue: 'http://10.0.2.2:8080');
+const defaultApiUrl = String.fromEnvironment('HIBRO_API', defaultValue: 'https://api.geliyo.site');
 const appVersion = 'geliyo-0.4';
 
 /// Cities known at build time, so the map can open instantly on first

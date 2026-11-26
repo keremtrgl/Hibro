@@ -30,8 +30,8 @@ Android emülatöründe bilgisayardaki sunucu için varsayılan `http://10.0.2.2
 ## Yayın derlemesi
 
 ```bash
-flutter build apk --release --split-per-abi --dart-define=HIBRO_API=https://api.senin-alanadin.com
-flutter build appbundle --release --dart-define=HIBRO_API=https://api.senin-alanadin.com   # Play Store
+flutter build apk --release --split-per-abi --dart-define=HIBRO_API=https://api.geliyo.site
+flutter build appbundle --release --dart-define=HIBRO_API=https://api.geliyo.site   # Play Store
 ```
 
 Play Store için imzalama anahtarı oluşturulmalı (`android/key.properties`, repoya eklenmez).

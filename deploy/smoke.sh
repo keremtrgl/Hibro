@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Quick check of a running Geliyo server: ./deploy/smoke.sh https://api.ornek.com
 set -uo pipefail
-B="${1:?kullanım: $0 https://api.alanadin.com}"
+B="${1:?kullanım: $0 https://api.geliyo.site}"
 pass=0; fail=0
 check() { # name url expected-substring
   local out; out="$(curl -s -m 30 "$2")"

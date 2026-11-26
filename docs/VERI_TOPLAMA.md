@@ -62,7 +62,7 @@ Bindim modu (izinle)
 
 ```bash
 # .env içinde HIBRO_ADMIN_TOKEN=uzun-rastgele-bir-değer
-curl -H "Authorization: Bearer $HIBRO_ADMIN_TOKEN" https://api.alanadin.com/admin/stats?days=7
+curl -H "Authorization: Bearer $HIBRO_ADMIN_TOKEN" https://api.geliyo.site/admin/stats?days=7
 ```
 
 Dönen özet: bildirim türleri, en çok bildirim alan hat ve duraklar, son notlar, yolculuk sayısı, hat bazında yolculuk, günlük sayaçlar.

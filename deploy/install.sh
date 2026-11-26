@@ -2,7 +2,7 @@
 # Geliyo: one-command VPS setup (Ubuntu 22.04/24.04, run as root).
 #
 #   git clone <repo> /opt/hibro && cd /opt/hibro
-#   sudo ./deploy/install.sh api.ornek.com
+#   sudo ./deploy/install.sh api.geliyo.site
 #
 # Safe to run again: existing settings are kept.
 set -euo pipefail

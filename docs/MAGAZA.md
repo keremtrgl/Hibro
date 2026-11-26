@@ -2,8 +2,8 @@
 
 ## 0. Yayından önce şart olanlar
 
-- [ ] VPS çalışıyor, `https://api.alanadin.com/healthz` yanıt veriyor
-- [ ] Uygulama sunucu adresiyle derlendi: `--dart-define=HIBRO_API=https://api.alanadin.com`
+- [ ] VPS çalışıyor, `https://api.geliyo.site/healthz` yanıt veriyor
+- [ ] Uygulama sunucu adresiyle derlendi: `--dart-define=HIBRO_API=https://api.geliyo.site`
 - [x] **Uygulama adı ve kimliği:** Geliyo, `com.geliyo.app` (Play'de yayınlandıktan sonra kimlik **değiştirilemez**).
 - [ ] Gizlilik metni avukata onaylatıldı, veri sorumlusu bilgileri dolduruldu (`server/internal/api/static/gizlilik.html`, `docs/legal/`)
 - [ ] Topluluk verisi (KentKart kaynaklı 13 şehir) için lisans/izin netleşti; olmazsa sunucuda `HIBRO_COMMUNITY=off`
@@ -29,7 +29,7 @@ Anahtarı ve şifreyi **yedekle**. Kaybedersen güncelleme yükleyemezsin (Play 
 
 ```bash
 cd app
-flutter build appbundle --release --dart-define=HIBRO_API=https://api.alanadin.com
+flutter build appbundle --release --dart-define=HIBRO_API=https://api.geliyo.site
 # çıktı: build/app/outputs/bundle/release/app-release.aab
 ```
 
@@ -61,7 +61,7 @@ Her yeni sürümde `pubspec.yaml` içindeki `version: 0.4.0+4` değerinin `+` so
 > Veriler belediyelerin açık verisinden gelir. Bir hata görürsen uygulamadan bildir, birlikte düzeltelim.
 
 4. **Grafikler:** ikon 512×512 (`docs/img/ikon.png` büyük sürümü), öne çıkan görsel 1024×500, en az 2 telefon ekran görüntüsü (`docs/img/` içindekiler örnek).
-5. **Gizlilik politikası URL'si:** `https://api.alanadin.com/gizlilik`
+5. **Gizlilik politikası URL'si:** `https://api.geliyo.site/gizlilik`
 6. **Uygulama içeriği:**
    - Reklam içeriyor mu: **Hayır**
    - Hedef kitle: 13+ (genel)

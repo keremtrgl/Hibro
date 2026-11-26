@@ -9,14 +9,14 @@
 ssh root@VPS_IP
 git clone https://github.com/keremtrgl/Hibro.git /opt/hibro   # gizli repo için aşağıdaki "Kodu indir" adımına bak
 cd /opt/hibro
-sudo ./deploy/install.sh api.senin-alanadin.com
+sudo ./deploy/install.sh api.geliyo.site
 ```
 
 Betik Docker'ı kurar, güvenlik duvarını açar, gerekirse swap ekler, `.env` dosyasını ve yönetici token'ını oluşturur, sunucuyu başlatır ve hazır olunca adresleri yazar. Tekrar çalıştırmak güvenlidir.
 
 Güncellemek için: `./deploy/update.sh`
 
-Her şey çalışıyor mu? `./deploy/smoke.sh https://api.senin-alanadin.com`
+Her şey çalışıyor mu? `./deploy/smoke.sh https://api.geliyo.site`
 
 ---
 
@@ -72,7 +72,7 @@ GIT_SSH_COMMAND="ssh -i ~/.ssh/hibro" git clone git@github.com:keremtrgl/Hibro.g
 ```bash
 cd /opt/hibro/deploy
 cp .env.example .env
-nano .env          # HIBRO_DOMAIN=api.senin-alanadin.com
+nano .env          # HIBRO_DOMAIN=api.geliyo.site
 docker compose up -d --build
 ```
 
@@ -86,13 +86,13 @@ docker compose logs -f hibro
 ## 6. Test et
 
 ```bash
-curl https://api.senin-alanadin.com/healthz
-curl https://api.senin-alanadin.com/v1/cities
+curl https://api.geliyo.site/healthz
+curl https://api.geliyo.site/v1/cities
 ```
 
 ## 7. Uygulamayı sunucuna bağla
 
-- **Derlerken:** `flutter build apk --dart-define=HIBRO_API=https://api.senin-alanadin.com`
+- **Derlerken:** `flutter build apk --dart-define=HIBRO_API=https://api.geliyo.site`
 - **Ya da** uygulamada: Ayarlar → Geliyo sunucu adresi.
 
 ## Toplanan veriye bakmak
@@ -100,7 +100,7 @@ curl https://api.senin-alanadin.com/v1/cities
 `.env` içinde `HIBRO_ADMIN_TOKEN` ayarladıysan (`openssl rand -hex 32`):
 
 ```bash
-curl -H "Authorization: Bearer TOKEN" https://api.senin-alanadin.com/admin/stats?days=7
+curl -H "Authorization: Bearer TOKEN" https://api.geliyo.site/admin/stats?days=7
 ```
 
 Ham dosyalar `deploy/data/collect/` altında (reports, trips, telemetry). Yolculuk izleri 30 gün sonra otomatik silinir. Ayrıntılar: [docs/VERI_TOPLAMA.md](../docs/VERI_TOPLAMA.md).
