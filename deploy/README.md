@@ -1,4 +1,24 @@
-# VPS Kurulumu (adım adım)
+# VPS Kurulumu
+
+## Hızlı yol (önerilen): tek komut
+
+1. VPS al (Türkiye, Ubuntu 24.04, 2 vCPU / 4 GB). Alan adında **A kaydını** VPS IP'sine yönlendir.
+2. Sunucuya bağlan ve:
+
+```bash
+ssh root@VPS_IP
+git clone https://github.com/keremtrgl/Hibro.git /opt/hibro   # gizli repo için aşağıdaki "Kodu indir" adımına bak
+cd /opt/hibro
+sudo ./deploy/install.sh api.senin-alanadin.com
+```
+
+Betik Docker'ı kurar, güvenlik duvarını açar, gerekirse swap ekler, `.env` dosyasını ve yönetici token'ını oluşturur, sunucuyu başlatır ve hazır olunca adresleri yazar. Tekrar çalıştırmak güvenlidir.
+
+Güncellemek için: `./deploy/update.sh`
+
+---
+
+# Adım adım (elle kurulum)
 
 Hedef: Türkiye'deki bir VPS'te Hibro sunucusunu HTTPS ile çalıştırmak. Toplam süre ~20 dakika.
 
