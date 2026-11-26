@@ -6,6 +6,8 @@
 
 ![Hibro ekranları: harita, canlı varışlar, canlı araçlı hat, duyurular, ayarlar](docs/img/ekranlar.png)
 
+![Konumuma göre duraklar, sorun bildirme, Bu araca bindim modu, inilecek durak seçimi, gizlilik ayarları](docs/img/veri-ozellikleri.png)
+
 ## Repo yapısı
 
 | Klasör | İçerik |
@@ -13,7 +15,7 @@
 | [`server/`](server/) | Go API sunucusu: belediye verisini toplar, cache'ler, tek tip JSON sunar |
 | [`app/`](app/) | Flutter uygulaması (Android, iOS, web) |
 | [`deploy/`](deploy/) | Türkiye VPS kurulumu: Docker Compose + otomatik HTTPS, adım adım rehber |
-| [`docs/`](docs/) | Yol haritası, veri envanteri, mimari ve kararlar |
+| [`docs/`](docs/) | Yol haritası, veri envanteri, mimari, kararlar, [veri toplama politikası](docs/VERI_TOPLAMA.md) |
 
 ## Hızlı başlangıç
 

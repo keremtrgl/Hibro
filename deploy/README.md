@@ -73,6 +73,18 @@ curl https://api.senin-alanadin.com/v1/cities
 - **Derlerken:** `flutter build apk --dart-define=HIBRO_API=https://api.senin-alanadin.com`
 - **Ya da** uygulamada: Ayarlar → Hibro sunucu adresi.
 
+## Toplanan veriye bakmak
+
+`.env` içinde `HIBRO_ADMIN_TOKEN` ayarladıysan (`openssl rand -hex 32`):
+
+```bash
+curl -H "Authorization: Bearer TOKEN" https://api.senin-alanadin.com/admin/stats?days=7
+```
+
+Ham dosyalar `deploy/data/collect/` altında (reports, trips, telemetry). Yolculuk izleri 30 gün sonra otomatik silinir. Ayrıntılar: [docs/VERI_TOPLAMA.md](../docs/VERI_TOPLAMA.md).
+
+> Yedek alırsan şifrele: `tar czf - data/collect | gpg -c > collect-YYYYMMDD.tgz.gpg`
+
 ## Güncelleme
 
 ```bash

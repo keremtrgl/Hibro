@@ -10,8 +10,15 @@ services:
       HIBRO_REFRESH: ${HIBRO_REFRESH:-24h}
       HIBRO_MOTIS_URL: ${HIBRO_MOTIS_URL:-}
       HIBRO_LOG_LEVEL: ${HIBRO_LOG_LEVEL:-info}
+      HIBRO_COLLECT: ${HIBRO_COLLECT:-on}
+      HIBRO_COLLECT_DIR: /collect
+      HIBRO_TRIP_RETENTION_DAYS: ${HIBRO_TRIP_RETENTION_DAYS:-30}
+      HIBRO_REPORT_RETENTION_DAYS: ${HIBRO_REPORT_RETENTION_DAYS:-365}
+      HIBRO_ADMIN_TOKEN: ${HIBRO_ADMIN_TOKEN:-}
+      HIBRO_TRUST_PROXY: "1"   # Caddy sets X-Forwarded-For (used only for in-memory rate limits)
     volumes:
       - ./data/hibro:/data
+      - ./data/collect:/collect
     expose:
       - "8080"
     mem_limit: 1g

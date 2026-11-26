@@ -108,14 +108,42 @@ Ankara, Bursa, Antalya, Kocaeli, Kayseri ve diğerleri.
 
 ---
 
+## Faz 2.5: Topluluk verisi (izinli, anonim) — BAŞLADI
+
+Ayrıntılı tasarım ve KVKK kontrol listesi: [VERI_TOPLAMA.md](VERI_TOPLAMA.md)
+
+**Tamamlanan (26 Kasım 2026):**
+- [x] Ana haritada yakındaki canlı otobüsler (konuma göre, 15 sn'de bir, yalnızca harita açıkken)
+- [x] İlk açılışta izin ekranı: "anonim istatistik" ve "yolculuk verisi", ikisi de varsayılan kapalı
+- [x] Ayarlar → Gizlilik ve veri ekranı (sade dille açıklama, her an kapatılabilir)
+- [x] Sorun bildirme: kalabalık, gelmedi, hayalet araç, geç/erken, yanlış durak, yanlış saat, arıza
+- [x] "Kalabalık bildirildi" etiketi (son 20 dk bildirimleri varışlarda)
+- [x] "Bu araca bindim" yolculuk modu: inilecek durak uyarısı + izinle yolculuk izi paylaşımı
+- [x] Gizlilik korumaları: baş/son 300 m kırpma, günlük rastgele kimlik, IP saklamama, otomatik silme (30 gün iz, 1 yıl bildirim)
+- [x] Sunucuda depolama (günlük JSONL), hız sınırı, token korumalı `/admin/stats`
+- [x] Aydınlatma metni ve açık rıza metni **taslakları** (`docs/legal/`)
+
+**Sıradaki:**
+- [ ] Aydınlatma ve açık rıza metinlerini avukata onaylatmak; veri sorumlusunu belirlemek
+- [ ] Haftalık veri düzeltme turu: `wrong_stop`/`wrong_time` bildirimlerini işleyen düzeltme katmanı (`overrides`)
+- [ ] Hayalet araç dedektörü: "gelmedi" bildirimleri + yolculuk izleriyle hat bazlı GPS yaş eşiği
+- [ ] Yolculuk izlerinden ESHOT hat-durak sırası çıkarımı
+- [ ] Segment süreleri → öğrenen varış tahmini (hedef: belediye ETA'sından %30 daha az hata)
+- [ ] İnilecek durak için gerçek sistem bildirimi (`flutter_local_notifications`)
+- [ ] Bildirim kötüye kullanımına karşı güven puanı (aynı oturumdan tekrarlı bildirimler, çelişen bildirimler)
+- [ ] Gizlilik dostu çökme raporları (self-hosted GlitchTip, izinle)
+- [ ] Play Store "Data safety" formu
+
+---
+
 ## Faz 4: Moovit'i geçen özellikler (Faz 2 ile paralel)
 
 | Özellik | Açıklama | Öncelik |
 |---|---|---|
-| **İneceğim durak alarmı** | Titreşim + bildirim, pil dostu (geofence) | Yüksek |
+| **İneceğim durak alarmı** | ✅ İlk sürüm: "Bu araca bindim" modunda titreşim + ses (ekran kapalıyken Android ön plan servisi). Sıradaki: sistem bildirimi, pil dostu geofence | Yüksek |
 | **Cihazda rota (tam çevrimdışı)** | Şehir paketinde RAPTOR, internet yokken bile A→B | Yüksek |
-| **Gecikme tahmini (ML)** | Canlı konum geçmişinden durağa varış tahmini; belediyenin ETA'sından daha doğru olması hedeflenir | Yüksek |
-| **Kalabalık tahmini** | Konya ElKart saatlik biniş verisi, İzmir biniş raporları | Orta |
+| **Gecikme tahmini (ML)** | Canlı konum geçmişi + kullanıcı yolculuk izlerinden durağa varış tahmini; belediyenin ETA'sından daha doğru olması hedeflenir. Veri toplama altyapısı hazır (Faz 2.5) | Yüksek |
+| **Kalabalık tahmini** | ✅ İlk sürüm: kullanıcı "kalabalık" bildirimleri varışlarda gösteriliyor. Sıradaki: Konya ElKart saatlik biniş verisi, İzmir biniş raporlarıyla tahmin | Orta |
 | **Ana ekran widget'ı** | Favori durağın sonraki 3 aracı | Yüksek |
 | **Wear OS / Apple Watch** | Sonraki araç, inme alarmı | Orta |
 | **Erişilebilirlik modu** | Asansör/rampa bilgisi, sesli yönlendirme | Orta |
@@ -164,13 +192,15 @@ Hedef maliyet (Faz 2 sonu): 2 VPS (TR ingest + API/MOTIS), CDN. Aylık ~ 50-150 
 | Verisi olmayan büyük şehirler (Ankara) | Kesin | Yüksek | Faz 3 stratejisi, belediye görüşmesi |
 | Kullanıcı kazanımı (Moovit'in ağ etkisi) | Yüksek | Yüksek | "Reklamsız" mesajı, hız, yerel topluluklar, üniversiteler |
 | İstanbul ölçeğinde performans | Orta | Orta | MOTIS ölçek testi, yatay ölçek, cache |
+| Konum verisi nedeniyle KVKK riski | Orta | Yüksek | Varsayılan kapalı + açık rıza, kırpma, kimliksizlik, 30 gün silme, avukat onayı |
+| Sahte/troll bildirimler | Orta | Orta | Hız sınırı, beyaz liste, güven puanı (sıradaki), tek bildirimle veri değiştirmeme |
 
 ---
 
-## Hemen sonraki 5 adım
+## Hemen sonraki adımlar
 
 1. Repoyu **gizli** yap (GitHub → Settings → Danger Zone → Change visibility)
-2. Türkiye VPS'i kirala (2 vCPU / 4 GB / 40 GB yeterli), ESHOT ve İBB GTFS'ini oradan indir
-3. `app/` Flutter iskeleti: harita + İzmir durakları + canlı otobüsler
-4. `ingest/` iskeleti: `feeds.yaml` okuyucu + `gtfs-validator` entegrasyonu
-5. İzmir RT köprüsü: belediye JSON → GTFS-Realtime
+2. Türkiye VPS'i kirala ve [deploy/README.md](../deploy/README.md) ile kur (`HIBRO_ADMIN_TOKEN` ayarla)
+3. APK'yı 5-10 kişilik kapalı betaya ver, "Bu araca bindim" ile ilk yolculuk verisini topla
+4. Aydınlatma/açık rıza metinlerini avukata onaylat
+5. İstanbul (İBB GTFS + İETT canlı) ve MOTIS rota planlayıcıyı VPS'te aç

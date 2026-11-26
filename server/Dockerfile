@@ -7,7 +7,7 @@ COPY . .
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/hibro-server ./cmd/hibro-server
 
 FROM alpine:3.20
-RUN apk add --no-cache ca-certificates tzdata && adduser -D -u 10001 hibro && mkdir -p /data && chown hibro /data
+RUN apk add --no-cache ca-certificates tzdata && adduser -D -u 10001 hibro && mkdir -p /data /collect && chown hibro /data /collect
 USER hibro
 COPY --from=build /out/hibro-server /usr/local/bin/hibro-server
 ENV HIBRO_ADDR=:8080 HIBRO_DATA_DIR=/data TZ=Europe/Istanbul

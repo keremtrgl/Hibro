@@ -48,6 +48,14 @@ Tüm ID'ler kaynak önekli: `b:12345` (ESHOT durağı), `m:1` (İzmir Metro), `k
 | `GET /v1/cities/{city}/alerts` | Aktif duyurular | 5 dk |
 | `GET /v1/cities/{city}/search?q=` | Türkçe karakter duyarsız arama | 1 dk |
 | `GET /v1/cities/{city}/plan?from=lat,lon&to=lat,lon` | Rota (MOTIS gerekli, yoksa 501) | – |
+| `GET /v1/cities/{city}/vehicles/nearby?lat=&lon=&radius=` | Yakındaki canlı araçlar | 5 sn |
+| `GET /v1/report-kinds` | Bildirim türleri | 1 sa |
+| `POST /v1/cities/{city}/reports` | Sorun bildirimi `{kind, stopId?, lineId?, plate?, note?}` | – |
+| `POST /v1/cities/{city}/trips` | İzinli yolculuk izi `{session, lineId, direction, points:[[t,lat,lon,acc,speed]]}` | – |
+| `POST /v1/telemetry` | Anonim sayaçlar `{city, events:{ad:sayı}}` | – |
+| `GET /admin/stats?days=7` | Toplanan veri özeti (`Authorization: Bearer HIBRO_ADMIN_TOKEN`) | – |
+
+Veri toplama ayarları: `HIBRO_COLLECT`, `HIBRO_COLLECT_DIR`, `HIBRO_TRIP_RETENTION_DAYS`, `HIBRO_REPORT_RETENTION_DAYS`, `HIBRO_TRUST_PROXY`, `HIBRO_ADMIN_TOKEN`. Gizlilik kuralları: [docs/VERI_TOPLAMA.md](../docs/VERI_TOPLAMA.md).
 
 ## Veri kalitesi kuralları
 
