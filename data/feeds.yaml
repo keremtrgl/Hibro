@@ -1,0 +1,174 @@
+# Hibro veri feed envanteri
+# Son kontrol: 2026-11-26
+# status: ok | geo_blocked | broken | stale | unofficial | unknown
+
+feeds:
+  # ---------------- İZMİR ----------------
+  - id: izm-eshot
+    city: izmir
+    agency: ESHOT
+    mode: bus
+    type: gtfs
+    url: https://www.eshot.gov.tr/gtfs/bus-eshot-gtfs.zip
+    fallback_url: https://www.transit.land/feeds/f-eshot~tr
+    license: İzmir BB Açık Veri Lisansı
+    status: geo_blocked
+    notes: Yurt dışından zaman aşımı. Mobility DB mdb-1823, ~394 hat.
+
+  - id: izm-metro
+    city: izmir
+    agency: Metro İzmir
+    mode: subway
+    type: gtfs
+    url: https://www.izmirmetro.com.tr/gtfs/rail-metro-gtfs.zip
+    license: İzmir BB Açık Veri Lisansı
+    status: ok
+    notes: 2 hat, 24 durak, geçerlilik 2026-07-09 / 2027-07-09, shapes yok
+
+  - id: izm-tram
+    city: izmir
+    agency: İzmir Tramvay
+    mode: tram
+    type: gtfs
+    url: https://www.tramizmir.com/gtfs/rail-tramizmir-gtfs.zip
+    license: İzmir BB Açık Veri Lisansı
+    status: ok
+    notes: 5 hat, 53 durak, geçerlilik 2026-07-16 / 2027-07-16, shapes yok
+
+  - id: izm-izdeniz
+    city: izmir
+    agency: İzdeniz
+    mode: ferry
+    type: gtfs
+    url: https://www.izdeniz.com.tr/gtfs/ship-izdeniz-gtfs.zip
+    fallback_url: https://www.transit.land/feeds/f-izdeniz~ferry
+    license: İzmir BB Açık Veri Lisansı
+    status: broken
+    notes: 912 bayt, geçerli zip değil (2026-11-26)
+
+  - id: izm-eshot-vehicles
+    city: izmir
+    agency: ESHOT
+    mode: bus
+    type: realtime_rest
+    url: https://openapi.izmir.bel.tr/api/iztek/hatotobuskonumlari/{hatNo}
+    auth: none
+    status: ok
+    notes: "KoorX=enlem, KoorY=boylam, ondalık virgül. Normalize et."
+
+  - id: izm-eshot-arrivals
+    city: izmir
+    agency: ESHOT
+    mode: bus
+    type: realtime_rest
+    url: https://acikveriwapi.izmir.bel.tr/AcikVeriEshot/Araclar/DuragaYaklasanOtobusler?durakKodu={durakKodu}
+    auth: none
+    status: ok
+
+  - id: izm-eshot-line-arrivals
+    city: izmir
+    agency: ESHOT
+    mode: bus
+    type: realtime_rest
+    url: https://openapi.izmir.bel.tr/api/iztek/hattinyaklasanotobusleri/{hatNo}/{durakId}
+    auth: none
+    status: unknown
+
+  - id: izm-eshot-announcements
+    city: izmir
+    agency: ESHOT
+    type: alerts_csv
+    url: https://openfiles.izmir.bel.tr/211488/docs/eshot-otobus-hat-duyurulari.csv
+    status: unknown
+
+  # ---------------- KONYA ----------------
+  - id: kny-all
+    city: konya
+    agency: Konya BB (Otobüs + Tramvay)
+    mode: [bus, tram]
+    type: gtfs
+    discovery:
+      ckan: https://acikveri.konya.bel.tr
+      package: toplu-tasima-gtfs-verileri
+      pick: newest   # gtfs_11_YYYY.zip, her yıl değişiyor
+    url: https://acikveri.konya.bel.tr/dataset/c2e034e6-e015-49c6-8eec-6e2f7de9c105/resource/c1d5a1a4-87c4-4a1d-9f4e-e1807a5b0d6e/download/gtfs_11_2026.zip
+    license: CC BY 4.0
+    status: ok
+    notes: 179 hat, 4494 durak, fares + shapes var
+
+  # ---------------- GAZİANTEP ----------------
+  - id: gzt-all
+    city: gaziantep
+    agency: Gaziulaş + ÖHO (5 işletmeci)
+    mode: [bus, tram]
+    type: gtfs
+    discovery:
+      ckan: https://acikveri.gaziantep.bel.tr
+      package: toplu-ulasim-gtfs-verileri
+    url: https://acikveri.gaziantep.bel.tr/dataset/12d26c98-edc5-4be3-8988-c753764b84f4/resource/b3254aa0-359e-4b7c-87a3-d5d56ad27353/download/gtfs.zip
+    license: Gaziantep Açık Veri Lisansı
+    status: ok
+    notes: 167 hat, 3244 durak, shapes + translations var. Takvim 2017-2100, güncelliği doğrula.
+
+  # ---------------- İSTANBUL ----------------
+  - id: ist-gtfs
+    city: istanbul
+    agency: İBB (kapsam doğrulanacak)
+    type: gtfs
+    discovery:
+      ckan: https://data.ibb.gov.tr
+      package: public-transport-gtfs-data
+    license: İBB Açık Veri Lisansı
+    status: geo_blocked
+
+  - id: ist-iett-soap
+    city: istanbul
+    agency: İETT
+    mode: bus
+    type: soap
+    url: https://api.ibb.gov.tr/iett/UlasimAnaVeri/HatDurakGuzergah.asmx?wsdl
+    extra:
+      - https://api.ibb.gov.tr/iett/UlasimAnaVeri/PlanlananSeferSaati.asmx?wsdl
+    license: İBB Açık Veri Lisansı
+    status: geo_blocked
+    notes: Filo/anlık konum ve duyuru servisleri de mevcut (doküman v1.4)
+
+  # ---------------- KOCAELİ ----------------
+  - id: kcl-gtfs
+    city: kocaeli
+    type: gtfs
+    url: https://mobilitydatabase.org/feeds/gtfs/mdb-1122
+    status: stale
+    notes: Takvim 2017-12 / 2018-12
+
+  # ---------------- KENTKART ŞEHİRLERİ ----------------
+  - id: kentkart-community
+    city: [antalya, kocaeli, sakarya, gaziantep]
+    type: gtfs_generator
+    url: https://github.com/Egezenn/kk-gtfs
+    status: unofficial
+    notes: Üretimde kullanmadan önce yazılı izin gerekli
+
+  # ---------------- ULUSAL ----------------
+  - id: flixbus-tr
+    city: national
+    mode: coach
+    type: gtfs
+    url: https://mobilitydatabase.org/feeds/gtfs/mdb-2922
+    status: ok
+
+  - id: izban
+    city: izmir
+    agency: İZBAN
+    mode: rail
+    type: gtfs
+    url: https://mobilitydatabase.org/feeds?q=izban
+    status: stale
+    notes: Mobility DB kaydı 2025-01-01'de bitiyor, güncel sürüm aranmalı. Kayıt ID'si doğrulanacak.
+
+  - id: osm-turkey
+    city: national
+    type: osm_pbf
+    url: https://download.geofabrik.de/europe/turkey-latest.osm.pbf
+    license: ODbL
+    status: ok
