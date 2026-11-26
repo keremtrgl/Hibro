@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hibro Gizlilik Politikası</title>
+<style>
+  :root { --bg:#fbfdfc; --fg:#1b1f1e; --muted:#5b6563; --accent:#00897b; --card:#eef5f3; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#111514; --fg:#e4e9e7; --muted:#9aa6a3; --accent:#4db6ac; --card:#1b2220; } }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  main { max-width:760px; margin:0 auto; padding:32px 16px 64px; }
+  h1 { font-size:28px; margin:0 0 4px; } h2 { font-size:19px; margin:32px 0 8px; color:var(--accent); }
+  .muted { color:var(--muted); font-size:14px; }
+  .card { background:var(--card); border-radius:12px; padding:16px; margin:16px 0; }
+  table { width:100%; border-collapse:collapse; font-size:15px; } td,th { text-align:left; padding:8px 6px; border-bottom:1px solid rgba(127,127,127,.25); vertical-align:top; }
+  .draft { border:2px dashed #e0a800; padding:10px 14px; border-radius:10px; font-size:14px; }
+</style>
+</head>
+<body><main>
+<h1>Hibro Gizlilik Politikası</h1>
+<p class="muted">Son güncelleme: 26 Kasım 2026</p>
+<p class="draft"><b>Taslak.</b> Yayından önce veri sorumlusu bilgileri doldurulmalı ve metin bir avukat tarafından onaylanmalıdır.</p>
+
+<div class="card"><b>Kısaca:</b> Hibro reklam göstermez, verini satmaz, hesap istemez. Kullanım istatistikleri ve yolculuk verisi paylaşımı <b>isteğe bağlıdır ve varsayılan olarak kapalıdır</b>. Uygulamada <i>Ayarlar → Gizlilik ve veri</i> bölümünden istediğin an değiştirebilirsin.</div>
+
+<h2>Veri sorumlusu</h2>
+<p>[ŞİRKET / KİŞİ ADI], [ADRES], [E-POSTA]</p>
+
+<h2>Hangi veriler, ne zaman?</h2>
+<table>
+<tr><th>Veri</th><th>Ne zaman / nasıl</th><th>Saklama</th></tr>
+<tr><td>Anlık konum</td><td>Yakındaki durakları göstermek için cihazda kullanılır. Yakındaki otobüsleri ve rotayı sorarken sunucuya iletilir, <b>kaydedilmez</b>.</td><td>Saklanmaz</td></tr>
+<tr><td>Yolculuk konum izi</td><td>Yalnızca açık rızanla ve "Bu araca bindim" modunda. İlk ve son 300 m cihazında silinir; günlük değişen rastgele bir kimlikle gönderilir.</td><td>En fazla 30 gün</td></tr>
+<tr><td>Sorun bildirimleri</td><td>Bildirim türü, durak/hat, varsa plaka ve yazdığın not. Konum ve kimlik gönderilmez.</td><td>En fazla 1 yıl</td></tr>
+<tr><td>Anonim kullanım sayaçları</td><td>Yalnızca açık rızanla. Kimlik ve konum içermeyen günlük toplamlar (ör. "durak ekranı 3 kez açıldı").</td><td>Toplam olarak</td></tr>
+<tr><td>IP adresi</td><td>Bağlantı için zorunlu; kötüye kullanımı önlemek amacıyla yalnızca bellekte geçici işlenir, kaydedilmez.</td><td>Saklanmaz</td></tr>
+</table>
+<p>Ad, telefon, e-posta, reklam kimliği, cihaz kimliği, kişi listesi <b>toplanmaz</b>. Favorilerin ve ayarların yalnızca telefonunda tutulur.</p>
+
+<h2>Amaçlar</h2>
+<p>Toplu taşıma bilgisini sunmak; belediye verilerindeki hataları bulup düzeltmek; varış tahminlerini iyileştirmek; hizmet güvenliğini sağlamak.</p>
+
+<h2>Hukuki sebepler (KVKK m.5)</h2>
+<p>Yolculuk izi ve kullanım sayaçları için <b>açık rıza</b>; anlık konum, sorun bildirimleri ve teknik veriler için hizmetin sunulması ve meşru menfaat.</p>
+
+<h2>Paylaşım</h2>
+<p>Veriler Türkiye'deki sunucularda tutulur, üçüncü kişilere satılmaz, reklam amacıyla paylaşılmaz. Veri düzeltmesi için belediyelere yalnızca toplu ve kimliksiz bilgi iletilebilir. Yasal zorunluluk hâlinde yetkili kurumlarla paylaşılabilir.</p>
+
+<h2>Üçüncü taraf hizmetler</h2>
+<p>Harita görüntüleri OpenFreeMap (OpenStreetMap verisi) sunucularından yüklenir; bu istekler haritanın görünen bölgesini içerir. Uygulamada reklam, analitik veya izleme SDK'sı yoktur.</p>
+
+<h2>Hakların (KVKK m.11)</h2>
+<p>Verilerinin işlenip işlenmediğini öğrenme, düzeltme, silme ve itiraz haklarına sahipsin. Verilerin kimliğine bağlanmadığından sana ait kayıtları tespit etmek çoğu durumda mümkün değildir; paylaşımları uygulamadan kapatabilirsin. Başvuru: [E-POSTA]</p>
+</main></body></html>

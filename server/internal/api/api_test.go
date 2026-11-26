@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -174,5 +175,19 @@ func TestConditionalLines(t *testing.T) {
 	resp.Body.Close()
 	if resp.StatusCode != http.StatusNotModified {
 		t.Fatalf("revalidation -> %d", resp.StatusCode)
+	}
+}
+
+func TestPrivacyPage(t *testing.T) {
+	ts := newTestServer(fakeSource{})
+	defer ts.Close()
+	resp, err := http.Get(ts.URL + "/gizlilik")
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if resp.StatusCode != 200 || !strings.Contains(string(b), "Gizlilik Politikası") {
+		t.Fatalf("privacy page: %d", resp.StatusCode)
 	}
 }

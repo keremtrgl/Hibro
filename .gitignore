@@ -20,3 +20,5 @@
 /deploy/data/
 /app/android/build/
 /app/android/.kotlin/
+*.jks
+*.keystore

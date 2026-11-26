@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../state/scope.dart';
 
@@ -53,6 +54,12 @@ class PrivacyScreen extends StatelessWidget {
         h('Hakların'),
         p('Verilerin kimliğe bağlanmadığı için kişisel bir kaydını tutmuyoruz; paylaşımları istediğin an buradan kapatabilirsin. '
             'KVKK kapsamındaki soruların için uygulama yayınlandığında iletişim adresi burada yer alacak.'),
+        ListTile(
+          leading: const Icon(Icons.open_in_new),
+          title: const Text('Tam gizlilik politikası'),
+          subtitle: Text('${s.api.baseUrl}/gizlilik'),
+          onTap: () => launchUrl(Uri.parse('${s.api.baseUrl}/gizlilik'), mode: LaunchMode.externalApplication),
+        ),
         const SizedBox(height: 32),
       ]),
     );

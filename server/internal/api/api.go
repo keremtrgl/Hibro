@@ -7,6 +7,7 @@ import (
 	"compress/gzip"
 	"context"
 	"crypto/sha1"
+	_ "embed"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -51,6 +52,8 @@ func (s *Server) now() time.Time {
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", s.health)
+	mux.HandleFunc("GET /gizlilik", privacyPage)
+	mux.HandleFunc("GET /privacy", privacyPage)
 	mux.HandleFunc("GET /v1/cities", s.cities)
 	mux.HandleFunc("GET /v1/cities/{city}", s.withCity(s.cityInfo))
 	mux.HandleFunc("GET /v1/cities/{city}/pack", s.withCity(s.pack))
@@ -70,6 +73,16 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /v1/telemetry", s.postTelemetry)
 	mux.HandleFunc("GET /admin/stats", s.adminStats)
 	return s.middleware(mux)
+}
+
+//go:embed static/gizlilik.html
+var privacyHTML []byte
+
+// privacyPage serves the privacy policy (the store listing links here).
+func privacyPage(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "public, max-age=3600")
+	_, _ = w.Write(privacyHTML)
 }
 
 // ---- middleware ----
