@@ -133,7 +133,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ],
       });
     } catch (e) {
-      debugPrint('hibro buses: $e');
+      debugPrint('geliyo buses: $e');
     }
   }
 

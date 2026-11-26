@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hibro/api/models.dart';
+import 'package:geliyo/api/models.dart';
 
 void main() {
   test('parses a live arrival', () {

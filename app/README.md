@@ -1,4 +1,4 @@
-# Hibro mobil uygulaması (Flutter)
+# Geliyo mobil uygulaması (Flutter)
 
 Reklamsız, izleyicisiz toplu taşıma uygulaması. Android, iOS ve web.
 

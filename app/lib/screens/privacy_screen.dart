@@ -24,7 +24,7 @@ class PrivacyScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Gizlilik ve veri')),
       body: ListView(children: [
         h('Kısaca'),
-        p('Hibro reklam göstermez ve verini kimseye satmaz. Hesap, telefon numarası veya e-posta istemez. '
+        p('Geliyo reklam göstermez ve verini kimseye satmaz. Hesap, telefon numarası veya e-posta istemez. '
             'Aşağıdaki iki paylaşım tamamen isteğe bağlıdır ve varsayılan olarak kapalıdır.'),
         SwitchListTile(
           value: s.shareUsage,

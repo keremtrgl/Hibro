@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hibro/screens/ride_screen.dart';
-import 'package:hibro/util/geo.dart';
+import 'package:geliyo/screens/ride_screen.dart';
+import 'package:geliyo/util/geo.dart';
 
 void main() {
   test('trimTrip removes the first and last 300 m', () {

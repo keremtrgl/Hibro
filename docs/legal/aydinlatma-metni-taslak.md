@@ -1,10 +1,10 @@
-# Hibro Kişisel Verilerin Korunması Aydınlatma Metni (TASLAK)
+# Geliyo Kişisel Verilerin Korunması Aydınlatma Metni (TASLAK)
 
 > ⚠️ **TASLAKTIR.** Yayından önce bir avukat tarafından gözden geçirilmelidir. Köşeli parantezli alanlar doldurulmalıdır.
 
 **Veri sorumlusu:** [ŞİRKET / KİŞİ ADI], [ADRES], [E-POSTA]
 
-6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") kapsamında, Hibro mobil uygulamasını kullanırken işlenen verilere ilişkin sizi bilgilendirmek isteriz.
+6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") kapsamında, Geliyo mobil uygulamasını kullanırken işlenen verilere ilişkin sizi bilgilendirmek isteriz.
 
 ## 1. İşlenen veriler
 

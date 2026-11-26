@@ -86,7 +86,7 @@ class _RideScreenState extends State<RideScreen> {
         distanceFilter: 10,
         intervalDuration: const Duration(seconds: 3),
         foregroundNotificationConfig: const ForegroundNotificationConfig(
-          notificationTitle: 'Hibro yolculuk modu',
+          notificationTitle: 'Geliyo yolculuk modu',
           notificationText: 'İneceğin durağı takip ediyoruz. Bitirmek için uygulamada "İndim"e dokun.',
           notificationChannelName: 'Yolculuk modu',
           enableWakeLock: true,
@@ -330,7 +330,7 @@ class _RideScreenState extends State<RideScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
-                'Ekran kapalıyken de takip sürer; bildirim çubuğunda "Hibro yolculuk modu" görünür.',
+                'Ekran kapalıyken de takip sürer; bildirim çubuğunda "Geliyo yolculuk modu" görünür.',
                 style: t.textTheme.bodySmall?.copyWith(color: t.colorScheme.onSurfaceVariant),
               ),
             ),

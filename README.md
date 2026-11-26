@@ -1,10 +1,12 @@
-# Hibro
+# Geliyo
+
+> Uygulamanın adı **Geliyo**; bu GitHub reposu ve sunucu içindeki teknik adlar (`hibro-server`, `HIBRO_*` ayarları) eski çalışma adı **Hibro**'dan kalmadır.
 
 **Reklamsız, hızlı, açık veriyle çalışan toplu taşıma uygulaması.** Moovit, Ekomobil ve benzeri uygulamalara alternatif.
 
 > Durum: **Çalışan MVP** (Kasım 2026). **17 şehir:** İzmir (canlı otobüs takibi, metro, tramvay, İZBAN), Konya, Gaziantep, Kocaeli ve topluluk verisiyle Antalya, Adana, Muğla, Erzurum, Ordu, Düzce, Mardin, Çanakkale, Burdur, Osmaniye, Safranbolu, Kırklareli, Kastamonu.
 
-![Hibro ekranları: harita, canlı varışlar, canlı araçlı hat, duyurular, ayarlar](docs/img/ekranlar.png)
+![Geliyo ekranları: harita, canlı varışlar, canlı araçlı hat, duyurular, ayarlar](docs/img/ekranlar.png)
 
 ![Konumuma göre duraklar, sorun bildirme, Bu araca bindim modu, inilecek durak seçimi, gizlilik ayarları](docs/img/veri-ozellikleri.png)
 
@@ -28,9 +30,9 @@ cd server && go run ./cmd/hibro-server            # http://localhost:8080
 cd app && flutter run --dart-define=HIBRO_API=http://localhost:8080
 ```
 
-## Neden Hibro?
+## Neden Geliyo?
 
-| Sorun (Moovit vb.) | Hibro'nun cevabı |
+| Sorun (Moovit vb.) | Geliyo'nun cevabı |
 |---|---|
 | Tam ekran reklamlar, banner'lar, "Premium'a geç" baskısı | **Hiç reklam yok. Hiçbir zaman.** Reklam SDK'sı koda girmeyecek. |
 | Ağır uygulama (100+ MB), yavaş açılış | Hedef: **< 1 sn soğuk açılış**, akıcı harita, gereksiz SDK yok |

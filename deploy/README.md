@@ -22,7 +22,7 @@ Her şey çalışıyor mu? `./deploy/smoke.sh https://api.senin-alanadin.com`
 
 # Adım adım (elle kurulum)
 
-Hedef: Türkiye'deki bir VPS'te Hibro sunucusunu HTTPS ile çalıştırmak. Toplam süre ~20 dakika.
+Hedef: Türkiye'deki bir VPS'te Geliyo sunucusunu HTTPS ile çalıştırmak. Toplam süre ~20 dakika.
 
 ## 0. Gerekenler
 
@@ -93,7 +93,7 @@ curl https://api.senin-alanadin.com/v1/cities
 ## 7. Uygulamayı sunucuna bağla
 
 - **Derlerken:** `flutter build apk --dart-define=HIBRO_API=https://api.senin-alanadin.com`
-- **Ya da** uygulamada: Ayarlar → Hibro sunucu adresi.
+- **Ya da** uygulamada: Ayarlar → Geliyo sunucu adresi.
 
 ## Toplanan veriye bakmak
 

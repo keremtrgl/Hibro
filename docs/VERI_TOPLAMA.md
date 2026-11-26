@@ -2,7 +2,7 @@
 
 Son güncelleme: 26 Kasım 2026
 
-> **Özet:** Hibro, belediye verisindeki eksik ve hataları kapatmak için kullanıcılardan **izinli ve anonim** veri toplar. Reklam yok, veri satışı yok, üçüncü taraf SDK yok. Her paylaşım **varsayılan olarak kapalıdır** ve kullanıcı istediği an kapatabilir.
+> **Özet:** Geliyo, belediye verisindeki eksik ve hataları kapatmak için kullanıcılardan **izinli ve anonim** veri toplar. Reklam yok, veri satışı yok, üçüncü taraf SDK yok. Her paylaşım **varsayılan olarak kapalıdır** ve kullanıcı istediği an kapatabilir.
 
 ## 1. Neden veri topluyoruz?
 

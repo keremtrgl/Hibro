@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hibro/util/geo.dart';
-import 'package:hibro/util/text.dart';
+import 'package:geliyo/util/geo.dart';
+import 'package:geliyo/util/text.dart';
 
 void main() {
   test('fold matches the server folding', () {

@@ -24,7 +24,7 @@ Android ve iOS için tek bir uygulama gerekiyor. Hedefler: soğuk açılış < 1
 
 ## Karar
 
-**Flutter.** Bu projede asıl yük haritada ve veride. Flutter'ın MapLibre desteği daha olgun, geliştirme hızı daha yüksek. Moovit'i yavaşlatan şey çatısı değil: reklam ve izleme SDK'ları, açılışta yapılan ağ çağrıları ve ağır başlangıç akışı. Hibro bunları zaten tasarımdan çıkarıyor.
+**Flutter.** Bu projede asıl yük haritada ve veride. Flutter'ın MapLibre desteği daha olgun, geliştirme hızı daha yüksek. Moovit'i yavaşlatan şey çatısı değil: reklam ve izleme SDK'ları, açılışta yapılan ağ çağrıları ve ağır başlangıç akışı. Geliyo bunları zaten tasarımdan çıkarıyor.
 
 KMP'nin tek net avantajı daha küçük APK ve doğal Android widget'ı. Boyut bu projede öncelik değil. Widget ve Wear OS için gereken küçük native parçalar Flutter'da platform kanalıyla yazılır.
 

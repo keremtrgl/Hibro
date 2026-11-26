@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Hibro: one-command VPS setup (Ubuntu 22.04/24.04, run as root).
+# Geliyo: one-command VPS setup (Ubuntu 22.04/24.04, run as root).
 #
 #   git clone <repo> /opt/hibro && cd /opt/hibro
 #   sudo ./deploy/install.sh api.ornek.com
@@ -74,7 +74,7 @@ elif ! hostname -I | tr ' ' '\n' | grep -qx "$DNS_IP"; then
   warn "$DOMAIN -> $DNS_IP, ama bu sunucunun IP'leri: $(hostname -I). (NAT'lı VPS'lerde normal olabilir.)"
 fi
 
-say "Hibro başlatılıyor (ilk derleme birkaç dakika sürebilir)"
+say "Geliyo başlatılıyor (ilk derleme birkaç dakika sürebilir)"
 cd "$HERE"
 docker compose up -d --build
 
@@ -99,7 +99,7 @@ cat <<MSG
   Toplanan veri   : curl -H "Authorization: Bearer $TOKEN" https://$DOMAIN/admin/stats
   Loglar          : cd $HERE && docker compose logs -f hibro
 
-  Uygulamada: Ayarlar -> Hibro sunucu adresi -> https://$DOMAIN
+  Uygulamada: Ayarlar -> Geliyo sunucu adresi -> https://$DOMAIN
   (HTTPS sertifikası ilk istekte otomatik alınır; DNS doğru değilse alınamaz.)
 
   Yönetici token'ı $ENV_FILE içinde saklı; kimseyle paylaşma.

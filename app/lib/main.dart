@@ -26,13 +26,13 @@ Future<void> main() async {
   await Notifier.init();
   final prefs = await SharedPreferences.getInstance();
   final state = AppState(prefs);
-  runApp(AppScope(state: state, child: const HibroApp()));
+  runApp(AppScope(state: state, child: const GeliyoApp()));
   // Load the cached pack after the first frame so start-up stays instant.
   state.init();
 }
 
-class HibroApp extends StatelessWidget {
-  const HibroApp({super.key});
+class GeliyoApp extends StatelessWidget {
+  const GeliyoApp({super.key});
 
   static const _seed = Color(0xFF00897B);
 
@@ -46,7 +46,7 @@ class HibroApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = AppScope.of(context);
     return MaterialApp(
-      title: 'Hibro',
+      title: 'Geliyo',
       debugShowCheckedModeBanner: false,
       theme: _theme(Brightness.light),
       darkTheme: _theme(Brightness.dark),

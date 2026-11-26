@@ -34,7 +34,7 @@ class _ConsentSheetState extends State<_ConsentSheet> {
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           Icon(Icons.volunteer_activism_outlined, size: 40, color: t.colorScheme.primary),
           const SizedBox(height: 12),
-          Text('Hibro\'ya hoş geldin', style: t.textTheme.headlineSmall),
+          Text('Geliyo\'ya hoş geldin', style: t.textTheme.headlineSmall),
           const SizedBox(height: 8),
           Text(
             'Reklam yok, hesap yok. Belediye verisi çoğu zaman eksik ya da hatalı; '

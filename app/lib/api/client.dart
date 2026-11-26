@@ -12,9 +12,9 @@ class ApiException implements Exception {
   String toString() => message;
 }
 
-/// Thin client for hibro-server. No API keys, no tracking headers.
-class HibroApi {
-  HibroApi(this.baseUrl, {http.Client? client}) : _http = client ?? http.Client();
+/// Thin client for the Geliyo server (hibro-server). No API keys, no tracking headers.
+class GeliyoApi {
+  GeliyoApi(this.baseUrl, {http.Client? client}) : _http = client ?? http.Client();
 
   String baseUrl;
   final http.Client _http;

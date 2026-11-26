@@ -22,7 +22,7 @@ import (
 	"time"
 )
 
-const userAgent = "Hibro/0.1 (+toplu tasima uygulamasi; reklamsiz)"
+const userAgent = "Geliyo/0.4 (+toplu tasima uygulamasi; reklamsiz)"
 
 type Client struct {
 	HTTP     *http.Client

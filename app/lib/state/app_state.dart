@@ -15,7 +15,7 @@ import '../util/geo.dart';
 import '../util/text.dart';
 
 const defaultApiUrl = String.fromEnvironment('HIBRO_API', defaultValue: 'http://10.0.2.2:8080');
-const appVersion = 'hibro-0.2';
+const appVersion = 'geliyo-0.4';
 
 /// Cities known at build time, so the map can open instantly on first
 /// launch before anything is downloaded.
@@ -65,7 +65,7 @@ class NearbyStop {
 }
 
 class AppState extends ChangeNotifier {
-  AppState(this.prefs) : api = HibroApi(prefs.getString('api') ?? defaultApiUrl) {
+  AppState(this.prefs) : api = GeliyoApi(prefs.getString('api') ?? defaultApiUrl) {
     cityId = prefs.getString('city') ?? 'izmir';
     themeMode = ThemeModeX.parse(prefs.getString('theme'));
     favorites = (jsonDecode(prefs.getString('favs') ?? '[]') as List)
@@ -154,7 +154,7 @@ class AppState extends ChangeNotifier {
   }
 
   final SharedPreferences prefs;
-  final HibroApi api;
+  final GeliyoApi api;
 
   late String cityId;
   late AppThemeMode themeMode;

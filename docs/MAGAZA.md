@@ -4,20 +4,20 @@
 
 - [ ] VPS çalışıyor, `https://api.alanadin.com/healthz` yanıt veriyor
 - [ ] Uygulama sunucu adresiyle derlendi: `--dart-define=HIBRO_API=https://api.alanadin.com`
-- [ ] **Uygulama kimliği** karar verildi. Şu an `com.hibro.hibro`. Play'de yayınlandıktan sonra **değiştirilemez**. Değiştirmek istersen ilk yayından önce söyle (`android/app/build.gradle.kts` ve Kotlin paket klasörü).
+- [x] **Uygulama adı ve kimliği:** Geliyo, `com.geliyo.app` (Play'de yayınlandıktan sonra kimlik **değiştirilemez**).
 - [ ] Gizlilik metni avukata onaylatıldı, veri sorumlusu bilgileri dolduruldu (`server/internal/api/static/gizlilik.html`, `docs/legal/`)
 - [ ] Topluluk verisi (KentKart kaynaklı 13 şehir) için lisans/izin netleşti; olmazsa sunucuda `HIBRO_COMMUNITY=off`
 
 ## 1. İmzalama anahtarı (bir kez)
 
 ```bash
-keytool -genkey -v -keystore ~/hibro-upload.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+keytool -genkey -v -keystore ~/geliyo-upload.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
 ```
 
 `app/android/key.properties` (repoya **eklenmez**, `.gitignore`'da):
 
 ```
-storeFile=/home/SEN/hibro-upload.jks
+storeFile=/home/SEN/geliyo-upload.jks
 storePassword=...
 keyAlias=upload
 keyPassword=...
@@ -38,14 +38,14 @@ Her yeni sürümde `pubspec.yaml` içindeki `version: 0.4.0+4` değerinin `+` so
 ## 3. Play Console
 
 1. <https://play.google.com/console> → geliştirici hesabı (tek seferlik 25 $).
-2. **Uygulama oluştur:** Ad "Hibro", Türkçe, Uygulama, Ücretsiz.
+2. **Uygulama oluştur:** Ad "Geliyo", Türkçe, Uygulama, Ücretsiz. (Alternatif mağaza adı: "Geliyo: Otobüs ve Metro Saatleri", 30 karaktere kadar.)
 3. **Mağaza girişi:**
 
 **Kısa açıklama (80 karakter):**
 > Reklamsız toplu taşıma: canlı otobüs, yakındaki duraklar, rota. Hesap yok.
 
 **Tam açıklama:**
-> Hibro, Türkiye'nin reklamsız toplu taşıma uygulaması.
+> Geliyo, Türkiye'nin reklamsız toplu taşıma uygulaması.
 >
 > • Hiç reklam yok. Hiçbir zaman.
 > • Canlı otobüs takibi (İzmir): durağa kaç dakikada geleceğini, kaç durak kaldığını, plakayı ve engelli erişimini gör.

@@ -21,7 +21,7 @@ plugins {
 }
 
 android {
-    namespace = "com.hibro.hibro"
+    namespace = "com.geliyo.app"
     // 37: required by flutter_local_notifications / androidx.core (targetSdk unchanged)
     compileSdk = 37
     ndkVersion = flutter.ndkVersion
@@ -35,7 +35,7 @@ android {
 
     defaultConfig {
         // Application ID is permanent once published on Google Play (see docs/MAGAZA.md).
-        applicationId = "com.hibro.hibro"
+        applicationId = "com.geliyo.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

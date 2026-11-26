@@ -55,7 +55,7 @@ class SettingsScreen extends StatelessWidget {
         ),
         ListTile(
           leading: const Icon(Icons.swap_vert),
-          title: const Text('Bu oturumda Hibro sunucusundan'),
+          title: const Text('Bu oturumda Geliyo sunucusundan'),
           subtitle: Text('${(s.api.bytesReceived / 1024).toStringAsFixed(1)} KB indirildi · harita karoları telefonda 150 MB\'a kadar saklanır'),
         ),
         _section(t, 'Gizlilik ve veri'),
@@ -73,7 +73,7 @@ class SettingsScreen extends StatelessWidget {
         _section(t, 'Sunucu'),
         ListTile(
           leading: const Icon(Icons.dns_outlined),
-          title: const Text('Hibro sunucu adresi'),
+          title: const Text('Geliyo sunucu adresi'),
           subtitle: Text(s.api.baseUrl),
           onTap: () => _editServer(context),
         ),
@@ -95,7 +95,7 @@ class SettingsScreen extends StatelessWidget {
         const ListTile(
           leading: Icon(Icons.block),
           title: Text('Reklam yok. Hiçbir zaman.'),
-          subtitle: Text('Hibro reklam göstermez, izleyici kullanmaz, konumunu kimseyle paylaşmaz. Favorilerin yalnızca bu cihazda tutulur.'),
+          subtitle: Text('Geliyo reklam göstermez, izleyici kullanmaz, konumunu kimseyle paylaşmaz. Favorilerin yalnızca bu cihazda tutulur.'),
         ),
         const SizedBox(height: 24),
       ]),

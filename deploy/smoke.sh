@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Quick check of a running Hibro server: ./deploy/smoke.sh https://api.ornek.com
+# Quick check of a running Geliyo server: ./deploy/smoke.sh https://api.ornek.com
 set -uo pipefail
 B="${1:?kullanım: $0 https://api.alanadin.com}"
 pass=0; fail=0

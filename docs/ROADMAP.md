@@ -1,4 +1,4 @@
-# Hibro Yol Haritası
+# Geliyo Yol Haritası
 
 > **Vizyon:** Türkiye'nin reklamsız, en hızlı ve en güvenilir toplu taşıma uygulaması.
 > **Hedef:** Moovit'ten daha hızlı, daha hafif, daha doğru. Sıfır reklam.
@@ -9,7 +9,7 @@ Son güncelleme: 26 Kasım 2026
 
 ## 0. Moovit'i nerede geçeceğiz?
 
-| Alan | Moovit (gözlem) | Hibro hedefi | Nasıl |
+| Alan | Moovit (gözlem) | Geliyo hedefi | Nasıl |
 |---|---|---|---|
 | Reklam | Banner, tam ekran, rota arası reklam | **0** | Reklam SDK'sı yok. Gelir: bağış, destekçi üyeliği, B2B. |
 | Uygulama boyutu | ~100 MB+ | Makul (katı sınır yok) | İzleme/reklam SDK'sı yok, vektör harita, SVG |
@@ -76,7 +76,7 @@ Son güncelleme: 26 Kasım 2026
 
 ## Bulunan veri sorunları ve çözümleri
 
-- **Hayalet araçlar:** ESHOT canlı API'si GPS'i saatlerdir güncellenmeyen araçları da "yaklaşıyor" diye gönderiyor (öğlen bir durakta gece 02:13'ten kalma gece otobüsleri). Hibro GPS'i 5 dakikadan eski kayıtları gizliyor. Bu, Moovit'e göre somut bir doğruluk avantajı.
+- **Hayalet araçlar:** ESHOT canlı API'si GPS'i saatlerdir güncellenmeyen araçları da "yaklaşıyor" diye gönderiyor (öğlen bir durakta gece 02:13'ten kalma gece otobüsleri). Geliyo GPS'i 5 dakikadan eski kayıtları gizliyor. Bu, Moovit'e göre somut bir doğruluk avantajı.
 - **ESHOT durak sırası yok:** API hat-durak ilişkisi vermiyor. ESHOT GTFS'i TR IP'den inince hat ekranındaki "Duraklar" sekmesi dolacak.
 - **İzmir Metro M1 iki ayrı hat olarak yayınlanıyor:** Sunucu aynı numaralı yönleri tek hatta birleştiriyor.
 

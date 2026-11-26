@@ -8,7 +8,7 @@ Uygulamada iki ayrı, birbirinden bağımsız onay kutusu bulunur. İkisi de var
 
 **☐ Anonim kullanım istatistikleri**
 
-Hibro'nun hangi ekran ve özelliklerinin ne sıklıkla kullanıldığına dair, kimlik ve konum içermeyen günlük toplam sayıların [VERİ SORUMLUSU] tarafından uygulamayı geliştirmek amacıyla işlenmesine [Aydınlatma Metni](aydinlatma-metni-taslak.md) kapsamında açık rıza veriyorum.
+Geliyo'nun hangi ekran ve özelliklerinin ne sıklıkla kullanıldığına dair, kimlik ve konum içermeyen günlük toplam sayıların [VERİ SORUMLUSU] tarafından uygulamayı geliştirmek amacıyla işlenmesine [Aydınlatma Metni](aydinlatma-metni-taslak.md) kapsamında açık rıza veriyorum.
 
 **☐ Yolculuk verisi**
 

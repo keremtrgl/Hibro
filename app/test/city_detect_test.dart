@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hibro/state/app_state.dart';
-import 'package:hibro/util/city_detect.dart';
+import 'package:geliyo/state/app_state.dart';
+import 'package:geliyo/util/city_detect.dart';
 
 void main() {
   test('finds the city the user is in', () {

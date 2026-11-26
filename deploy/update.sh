@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Pull the latest code and restart Hibro with zero manual steps.
+# Pull the latest code and restart Geliyo with zero manual steps.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 git pull --ff-only

@@ -29,9 +29,9 @@ Durum işaretleri:
 
 ## 1.1 Sistematik tarama (26.11.2026)
 
-Kaynak: MobilityData kataloğu (`share.mobilitydata.org/catalogs-csv`, 3.687 feed, **25 Türkiye kaydı**) + MobilityData'nın sakladığı aylık kopyalar. Her dosya Hibro'nun GTFS yükleyicisiyle açılıp ölçüldü (`go run ./server/cmd/gtfsinfo`).
+Kaynak: MobilityData kataloğu (`share.mobilitydata.org/catalogs-csv`, 3.687 feed, **25 Türkiye kaydı**) + MobilityData'nın sakladığı aylık kopyalar. Her dosya Geliyo'nun GTFS yükleyicisiyle açılıp ölçüldü (`go run ./server/cmd/gtfsinfo`).
 
-| Şehir | Kaynak | Resmi mi? | Durak | Hat | Tarife | Hibro'da |
+| Şehir | Kaynak | Resmi mi? | Durak | Hat | Tarife | Geliyo'da |
 |---|---|---|---|---|---|---|
 | İzmir (otobüs) | ESHOT API + ESHOT GTFS (MobilityData kopyası) | ✅ | 10.483 | 394 | GTFS 2024 (sadece durak sırası için) | ✅ canlı + durak sırası |
 | İzmir (İZBAN) | izban.com.tr GTFS | ✅ | 41 | 8 | 2025'te bitmiş | ✅ "eski veri" uyarısıyla |
@@ -91,7 +91,7 @@ Lisans: İzmir Büyükşehir Belediyesi Açık Veri Lisansı
 | Metro/Tramvay durak arası mesafeler | portal: `izmir-metro-tramvay-durak-mesafeleri` | |
 | Taksi durakları | `https://openapi.izmir.bel.tr/api/ibb/cbs/taksiduraklari` | |
 
-> ✅ **Kod ile doğrulandı (26.11.2026):** Hat listesi (448 hat), durak listesi (12.012 durak), hareket saatleri (63.512 sefer), güzergâh CSV'si (572 bin nokta), duyurular ve canlı API'lerin hepsi Hibro sunucusunda çalışıyor. ESHOT için GTFS'e gerek kalmadan otobüs verisi tam. Eksik olan tek şey hat-durak sırası.
+> ✅ **Kod ile doğrulandı (26.11.2026):** Hat listesi (448 hat), durak listesi (12.012 durak), hareket saatleri (63.512 sefer), güzergâh CSV'si (572 bin nokta), duyurular ve canlı API'lerin hepsi Geliyo sunucusunda çalışıyor. ESHOT için GTFS'e gerek kalmadan otobüs verisi tam. Eksik olan tek şey hat-durak sırası.
 >
 > ⚠️ **Hayalet araçlar:** `DuragaYaklasanOtobusler` yanıtında GPS zamanı saatler önce olan araçlar da var. `gpsTime` alanı 5 dakikadan eskiyse kayıt atılmalı.
 >
@@ -165,7 +165,7 @@ Referans: Konya'da **1 yılda** (2025 → 2026) durakların %98'i aynı yerde ka
 
 ### 2.7 KentKart kullanan şehirler
 
-KentKart'ın şehir listesinde **27 bölge** var (26.11.2026): Adana, Kocaeli, Sivas, Çanakkale, Muğla, Yozgat, Edirne, Burdur, Alanya, Ereğli, Niğde, Lüleburgaz, Kastamonu, Antalya, Kırklareli, Gaziantep, Alaplı, Altınova, Ordu, Mardin, Osmaniye, Düzce, Safranbolu, Erzurum, Tokat, Akçakoca, Çivril. Bu şehirlerin hat, durak, sefer saati ve **canlı araç** verisi KentKart'ta. KentKart ile resmi bir veri paylaşım anlaşması, Hibro'ya tek seferde 27 şehir kazandırabilir.
+KentKart'ın şehir listesinde **27 bölge** var (26.11.2026): Adana, Kocaeli, Sivas, Çanakkale, Muğla, Yozgat, Edirne, Burdur, Alanya, Ereğli, Niğde, Lüleburgaz, Kastamonu, Antalya, Kırklareli, Gaziantep, Alaplı, Altınova, Ordu, Mardin, Osmaniye, Düzce, Safranbolu, Erzurum, Tokat, Akçakoca, Çivril. Bu şehirlerin hat, durak, sefer saati ve **canlı araç** verisi KentKart'ta. KentKart ile resmi bir veri paylaşım anlaşması, Geliyo'ya tek seferde 27 şehir kazandırabilir.
 
 - `Egezenn/kk-gtfs`: KentKart kullanan belediyelerin hatlarını GTFS'e çeviren topluluk aracı ve görüntüleyici.
 - ⚠️ KentKart uç noktaları **resmi açık veri değil.** Ticari üründe kullanmadan önce belediye veya KentKart'tan yazılı izin alınmalı. Aksi halde bu kaynak yalnızca prototip için kullanılır.

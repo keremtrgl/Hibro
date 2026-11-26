@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hibro/util/polyline.dart';
+import 'package:geliyo/util/polyline.dart';
 
 void main() {
   test('decodes real planner polylines', () {
