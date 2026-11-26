@@ -6,7 +6,8 @@ plugins {
 
 android {
     namespace = "com.hibro.hibro"
-    compileSdk = flutter.compileSdkVersion
+    // 37: required by flutter_local_notifications / androidx.core (targetSdk unchanged)
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
