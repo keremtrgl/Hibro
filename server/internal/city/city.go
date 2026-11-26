@@ -313,8 +313,20 @@ func (c *City) NearbyVehicles(ctx context.Context, lat, lon, radiusM float64, ma
 		}(st.ID)
 	}
 	best := map[string]model.NearbyVehicle{}
+	// Answer within 1.5 s with whatever has arrived; slower stops keep
+	// loading into the cache and show up on the next refresh.
+	deadline := time.NewTimer(1500 * time.Millisecond)
+	defer deadline.Stop()
+collect:
 	for range stops {
-		r := <-out
+		var r res
+		select {
+		case r = <-out:
+		case <-deadline.C:
+			break collect
+		case <-ctx.Done():
+			break collect
+		}
 		for _, a := range r.arr {
 			if !a.Realtime || a.Lat == 0 || a.Plate == "" {
 				continue

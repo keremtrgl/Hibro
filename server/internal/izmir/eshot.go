@@ -615,10 +615,12 @@ func (e *ESHOT) RoutingSources() []*gtfs.Source {
 func NewESHOT(prefix string, st *Static, fc *fetch.Client, ep Endpoints) *ESHOT {
 	e := &ESHOT{
 		prefix: prefix, st: st, fc: fc, ep: ep,
-		lines:    map[string]Line{},
-		stops:    map[string]bool{},
-		arrivals: cache.New[[]model.Arrival](15*time.Second, 5*time.Second, 20000),
-		vehicles: cache.New[[]model.Vehicle](10*time.Second, 5*time.Second, 2000),
+		lines: map[string]Line{},
+		stops: map[string]bool{},
+		// Expired entries are served for a while and refreshed in the
+		// background, so nobody waits for the (slow) ESHOT API twice.
+		arrivals: cache.New[[]model.Arrival](15*time.Second, 5*time.Second, 20000).WithStale(60 * time.Second),
+		vehicles: cache.New[[]model.Vehicle](10*time.Second, 5*time.Second, 2000).WithStale(30 * time.Second),
 	}
 	for _, l := range st.Lines {
 		e.lines[l.No] = l
@@ -631,7 +633,16 @@ func NewESHOT(prefix string, st *Static, fc *fetch.Client, ep Endpoints) *ESHOT 
 	if f, err := RoutingFeed(st); err == nil && f != nil {
 		e.routing = gtfs.NewSource(prefix, f, model.SourceInfo{Name: "ESHOT (planlama için)", Estimated: true})
 	}
+	// At most 8 requests to ESHOT at a time: polite to the municipality
+	// and keeps a traffic spike from turning into a request storm.
+	upstream := make(chan struct{}, 8)
 	e.Fetch = func(ctx context.Context, u string) ([]byte, error) {
+		select {
+		case upstream <- struct{}{}:
+			defer func() { <-upstream }()
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
 		// The ESHOT API intermittently returns empty bodies; retry those.
 		var last error
 		for i := 0; i < 3; i++ {
