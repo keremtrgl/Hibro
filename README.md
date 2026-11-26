@@ -8,6 +8,8 @@
 
 ![Konumuma göre duraklar, sorun bildirme, Bu araca bindim modu, inilecek durak seçimi, gizlilik ayarları](docs/img/veri-ozellikleri.png)
 
+**Rota planlama:** Kendi RAPTOR planlayıcımız 16 şehirde çalışıyor; İzmir'de otobüs + metro + tramvay + İZBAN aktarmalı.
+
 ## Repo yapısı
 
 | Klasör | İçerik |

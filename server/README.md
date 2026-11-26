@@ -53,7 +53,7 @@ Tüm ID'ler kaynak önekli: `b:12345` (ESHOT durağı), `m:1` (İzmir Metro), `k
 | `GET /v1/cities/{city}/lines/{id}/vehicles` | Canlı araç konumları | 5 sn |
 | `GET /v1/cities/{city}/alerts` | Aktif duyurular | 5 dk |
 | `GET /v1/cities/{city}/search?q=` | Türkçe karakter duyarsız arama | 1 dk |
-| `GET /v1/cities/{city}/plan?from=lat,lon&to=lat,lon` | Rota (MOTIS gerekli, yoksa 501) | – |
+| `GET /v1/cities/{city}/plan?from=lat,lon&to=lat,lon&time=RFC3339` | Rota. `HIBRO_MOTIS_URL` varsa MOTIS, yoksa dahili RAPTOR planlayıcı (`internal/raptor`) | – |
 | `GET /v1/cities/{city}/vehicles/nearby?lat=&lon=&radius=` | Yakındaki canlı araçlar | 5 sn |
 | `GET /v1/report-kinds` | Bildirim türleri | 1 sa |
 | `POST /v1/cities/{city}/reports` | Sorun bildirimi `{kind, stopId?, lineId?, plate?, note?}` | – |

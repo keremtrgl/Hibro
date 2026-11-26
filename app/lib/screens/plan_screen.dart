@@ -31,7 +31,11 @@ class _PlanScreenState extends State<PlanScreen> {
     }
     if (!mounted) return;
     final lat = s.myLat ?? s.city.lat, lon = s.myLon ?? s.city.lon;
-    setState(() => _future = s.api.plan(s.cityId, lat, lon, widget.destination.lat, widget.destination.lon));
+    s.track('plan_request');
+    setState(() => _future = s.api.plan(s.cityId, lat, lon, widget.destination.lat, widget.destination.lon).then((its) {
+          if (its.isEmpty) s.track('plan_empty');
+          return its;
+        }));
   }
 
   @override
@@ -50,10 +54,19 @@ class _PlanScreenState extends State<PlanScreen> {
             return EmptyState(icon: Icons.route, title: 'Rota bulunamadı', body: '${snap.error}', action: FilledButton(onPressed: _run, child: const Text('Tekrar dene')));
           }
           final its = snap.data!;
-          if (its.isEmpty) return const EmptyState(icon: Icons.route, title: 'Uygun bağlantı yok');
+          if (its.isEmpty) {
+            return const EmptyState(
+              icon: Icons.route,
+              title: 'Önümüzdeki 4 saatte uygun bağlantı yok',
+              body: 'Hedef bir duraktan çok uzaksa ya da sefer saatleri bitmişse olabilir.',
+            );
+          }
           return ListView(children: [
-            if (s.myLat == null)
-              const ListTile(leading: Icon(Icons.info_outline), title: Text('Konum alınamadı, şehir merkezinden hesaplandı.')),
+            ListTile(
+              leading: const Icon(Icons.trip_origin),
+              title: Text(s.myLat == null ? 'Şehir merkezinden (konum alınamadı)' : 'Konumundan'),
+              subtitle: Text('→ ${widget.destination.name} · şimdi yola çıkarsan'),
+            ),
             for (final it in its) _ItineraryCard(it: it),
           ]);
         },
@@ -97,7 +110,12 @@ class _ItineraryCard extends StatelessWidget {
               dense: true,
               leading: l.mode == 'WALK' ? const Icon(Icons.directions_walk) : Icon(modeIcon(_mode(l.mode)), color: modeColor(_mode(l.mode))),
               title: Text(l.mode == 'WALK' ? '${formatDistance(l.distanceM)} yürü → ${l.to.name}' : '${l.line} ${l.headsign.isEmpty ? '' : '(${l.headsign})'}'),
-              subtitle: l.mode == 'WALK' ? null : Text('${l.from.name} ${_hm(l.start)} → ${l.to.name} ${_hm(l.end)} · ${l.numStops} durak'),
+              subtitle: l.mode == 'WALK'
+                  ? null
+                  : Text([
+                      '${l.from.name} ${_hm(l.start)} → ${l.to.name} ${_hm(l.end)} · ${l.numStops} durak',
+                      if (l.note.isNotEmpty) '⚠ ${l.note}',
+                    ].join('\n')),
             ),
         ],
       ),

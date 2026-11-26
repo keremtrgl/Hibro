@@ -255,7 +255,7 @@ class Vehicle {
 }
 
 class Leg {
-  final String mode, line, headsign, color;
+  final String mode, line, headsign, color, note;
   final StopRef from, to;
   final DateTime start, end;
   final int distanceM, numStops;
@@ -264,6 +264,7 @@ class Leg {
         line = _s(j['line']),
         headsign = _s(j['headsign']),
         color = _s(j['color']),
+        note = _s(j['note']),
         from = StopRef.fromJson(j['from'] as Map<String, dynamic>),
         to = StopRef.fromJson(j['to'] as Map<String, dynamic>),
         start = DateTime.parse(_s(j['start'])).toLocal(),

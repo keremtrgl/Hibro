@@ -504,6 +504,14 @@ class _NearbySheet extends StatelessWidget {
                 Expanded(
                   child: Text(aroundMe ? 'Yakınımdaki duraklar' : 'Bu bölgedeki duraklar', style: t.textTheme.titleMedium),
                 ),
+                if (s.hasCity && s.city.features.planner) ...[
+                  FilledButton.icon(
+                    onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchScreen(forRoute: true))),
+                    icon: const Icon(Icons.directions, size: 18),
+                    label: const Text('Rota'),
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 FilledButton.tonalIcon(
                   onPressed: onLocate,
                   icon: const Icon(Icons.my_location, size: 18),

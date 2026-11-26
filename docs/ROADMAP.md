@@ -50,7 +50,8 @@ Son güncelleme: 26 Kasım 2026
 - [x] Ingest servisi: `feeds.yaml` okuyucu, gece çekimi, hash kontrolü, doğrulama
 - [x] İzmir adaptörü: koordinat düzeltmesi (`KoorX`↔`KoorY`, virgül→nokta), hat/durak ID eşleme
 - [ ] **RT köprüsü:** İzmir JSON → GTFS-Realtime `VehiclePositions` (canlı veri şimdilik kendi API'mizden sunuluyor; GTFS-RT çıktısı MOTIS gecikme entegrasyonu için gerekli)
-- [ ] MOTIS kurulumu: ESHOT + Metro + Tramvay + OSM yürüme ağı (`deploy/motis/prepare.sh` hazır, VPS'te test edilecek)
+- [x] **Dahili rota planlayıcı (RAPTOR)**: 16 şehirde ek kurulum olmadan A'dan B'ye, 3 aktarmaya kadar, sorgu ~25-110 ms. İzmir'de otobüs (güncel kalkış + GTFS süreleri) + metro + tramvay + İZBAN aktarmalı
+- [ ] (Opsiyonel) MOTIS: gerçek sokak ağıyla yürüme mesafesi ve canlı gecikmeli rota için (`deploy/motis/prepare.sh`)
 - [x] API: `/nearby`, `/stop/{id}/departures`, `/route/{id}`, `/plan`, `/live/route/{id}` (SSE)
 - [ ] Gözlemlenebilirlik: feed tazeliği, API gecikmesi, hata oranı panosu
 
