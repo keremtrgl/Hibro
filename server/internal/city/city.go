@@ -270,6 +270,78 @@ func (c *City) Arrivals(ctx context.Context, stopID string, now time.Time) ([]mo
 	return s.Arrivals(ctx, local, now)
 }
 
+// NearbyVehicles finds live vehicles within radiusM of a point by asking
+// the closest live-capable stops what is approaching them. Upstream calls
+// are cached per stop, so many users in one area cost one request per
+// stop every few seconds.
+func (c *City) NearbyVehicles(ctx context.Context, lat, lon, radiusM float64, maxStops int) []model.NearbyVehicle {
+	var stops []model.Stop
+	for _, h := range c.index.Near(lat, lon, radiusM+400, 200) {
+		st := c.stops[h.Index]
+		if c.LiveStop(st.ID) {
+			stops = append(stops, st)
+			if len(stops) >= maxStops {
+				break
+			}
+		}
+	}
+	type res struct{ arr []model.Arrival }
+	out := make(chan res, len(stops))
+	sem := make(chan struct{}, 6)
+	now := time.Now()
+	for _, st := range stops {
+		go func(id string) {
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			arr, _ := c.Arrivals(ctx, id, now)
+			out <- res{arr}
+		}(st.ID)
+	}
+	best := map[string]model.NearbyVehicle{}
+	for range stops {
+		r := <-out
+		for _, a := range r.arr {
+			if !a.Realtime || a.Lat == 0 || a.Plate == "" {
+				continue
+			}
+			d := geo.DistanceM(lat, lon, a.Lat, a.Lon)
+			if d > radiusM {
+				continue
+			}
+			key := a.Plate
+			if _, seen := best[key]; seen {
+				continue
+			}
+			color := a.Color
+			if color == "" {
+				if l, ok := c.LineInfo(a.LineID); ok {
+					color = l.Color
+				}
+			}
+			best[key] = model.NearbyVehicle{
+				ID: a.Plate, LineID: a.LineID, Line: a.Line, Headsign: a.Headsign, Mode: a.Mode,
+				Color: color, Lat: a.Lat, Lon: a.Lon, DistanceM: int(d),
+			}
+		}
+	}
+	list := make([]model.NearbyVehicle, 0, len(best))
+	for _, v := range best {
+		list = append(list, v)
+	}
+	sort.Slice(list, func(i, j int) bool { return list[i].DistanceM < list[j].DistanceM })
+	return list
+}
+
+// Bounds returns the box around all stops plus a margin (degrees).
+func (c *City) Bounds(margin float64) (minLat, minLon, maxLat, maxLon float64) {
+	minLat, minLon, maxLat, maxLon = 90, 180, -90, -180
+	for _, s := range c.stops {
+		minLat, maxLat = min(minLat, s.Lat), max(maxLat, s.Lat)
+		minLon, maxLon = min(minLon, s.Lon), max(maxLon, s.Lon)
+	}
+	return minLat - margin, minLon - margin, maxLat + margin, maxLon + margin
+}
+
 // LiveStop reports whether the stop's source provides live arrivals.
 func (c *City) LiveStop(stopID string) bool {
 	s, _, err := c.split(stopID)

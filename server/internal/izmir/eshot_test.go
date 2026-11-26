@@ -103,6 +103,9 @@ func TestParseArrivals(t *testing.T) {
 	if a.Line != "19" || a.Minutes != 3 || !a.Realtime || a.StopsAway != 5 || a.Headsign != "Konak" {
 		t.Fatalf("arrival = %+v", a)
 	}
+	if a.Lat < 38.39 || a.Lat > 38.40 || a.Lon < 27.10 || a.Lon > 27.11 {
+		t.Fatalf("vehicle position missing: %f,%f", a.Lat, a.Lon)
+	}
 	if _, err := ParseArrivals([]byte("  "), "b", now); err == nil {
 		t.Fatal("empty body must be an error so it is retried")
 	}

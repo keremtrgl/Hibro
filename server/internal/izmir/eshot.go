@@ -331,6 +331,11 @@ func parseTime(s string) *time.Time {
 
 // ---- live data ----
 
+type latLng struct {
+	Lat float64 `json:"lat"`
+	Lng float64 `json:"lng"`
+}
+
 type rawArrival struct {
 	LineCode       string  `json:"lineCode"`
 	Starting       string  `json:"starting"`
@@ -342,6 +347,8 @@ type rawArrival struct {
 	Direction      int     `json:"direction"`
 	Plate          string  `json:"plate"`
 	GPSTime        string  `json:"gpsTime"`
+	Current        latLng  `json:"currentLocation"`
+	Snapped        latLng  `json:"snappedLocation"`
 	StationOrder   int     `json:"stationOrder"`
 	TargetOrder    int     `json:"targetStationOrder"`
 	DistanceTarget float64 `json:"distanceToTarget"`
@@ -391,6 +398,12 @@ func ParseArrivals(b []byte, prefix string, now time.Time) ([]model.Arrival, err
 			Minutes: (secs + 30) / 60, Time: at.In(istanbul).Format("15:04"),
 			Realtime: true, Plate: r.Plate, Accessible: &disabled, Bicycle: &bike, Electric: &elec,
 			DistanceM: int(r.DistanceTarget), IsLast: r.IsLast,
+		}
+		// Prefer the position snapped to the route; fall back to raw GPS.
+		if r.Snapped.Lat != 0 {
+			a.Lat, a.Lon = r.Snapped.Lat, r.Snapped.Lng
+		} else {
+			a.Lat, a.Lon = r.Current.Lat, r.Current.Lng
 		}
 		if r.TargetOrder > r.StationOrder {
 			a.StopsAway = r.TargetOrder - r.StationOrder

@@ -101,6 +101,25 @@ type Arrival struct {
 	DistanceM  int    `json:"distanceM,omitempty"`
 	StopsAway  int    `json:"stopsAway,omitempty"`
 	IsLast     bool   `json:"isLast,omitempty"`
+	// Live vehicle position, when the source reports it.
+	Lat float64 `json:"lat,omitempty"`
+	Lon float64 `json:"lon,omitempty"`
+	// Crowded is set when riders reported this line as crowded recently.
+	Crowded bool `json:"crowded,omitempty"`
+}
+
+// NearbyVehicle is a live vehicle near a point, with enough line info
+// to draw and label it on the home map.
+type NearbyVehicle struct {
+	ID        string  `json:"id"`
+	LineID    string  `json:"lineId"`
+	Line      string  `json:"line"`
+	Headsign  string  `json:"headsign,omitempty"`
+	Mode      Mode    `json:"mode"`
+	Color     string  `json:"color,omitempty"`
+	Lat       float64 `json:"lat"`
+	Lon       float64 `json:"lon"`
+	DistanceM int     `json:"distanceM"`
 }
 
 type Vehicle struct {

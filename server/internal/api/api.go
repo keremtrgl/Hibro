@@ -26,6 +26,7 @@ import (
 type Server struct {
 	Cities  *city.Registry
 	Planner *plan.MOTIS
+	Collect *Collect // nil disables contribution endpoints
 	Log     *slog.Logger
 	Now     func() time.Time
 	Loc     *time.Location
@@ -57,6 +58,12 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /v1/cities/{city}/alerts", s.withCity(s.alerts))
 	mux.HandleFunc("GET /v1/cities/{city}/search", s.withCity(s.search))
 	mux.HandleFunc("GET /v1/cities/{city}/plan", s.withCity(s.plan))
+	mux.HandleFunc("GET /v1/cities/{city}/vehicles/nearby", s.withCity(s.nearbyVehicles))
+	mux.HandleFunc("GET /v1/report-kinds", s.reportKinds)
+	mux.HandleFunc("POST /v1/cities/{city}/reports", s.withCity(s.postReport))
+	mux.HandleFunc("POST /v1/cities/{city}/trips", s.withCity(s.postTrip))
+	mux.HandleFunc("POST /v1/telemetry", s.postTelemetry)
+	mux.HandleFunc("GET /admin/stats", s.adminStats)
 	return s.middleware(mux)
 }
 
@@ -109,8 +116,8 @@ func (s *Server) middleware(next http.Handler) http.Handler {
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("Referrer-Policy", "no-referrer")
 		if r.Method == http.MethodOptions {
-			h.Set("Access-Control-Allow-Methods", "GET, OPTIONS")
-			h.Set("Access-Control-Allow-Headers", "If-None-Match")
+			h.Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+			h.Set("Access-Control-Allow-Headers", "If-None-Match, Content-Type")
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
@@ -298,8 +305,11 @@ func (s *Server) arrivals(w http.ResponseWriter, r *http.Request, c *city.City) 
 		resp.Arrivals = []model.Arrival{}
 	}
 	resp.Live = c.LiveStop(id)
-	for _, a := range arr {
+	for i, a := range arr {
 		resp.Live = resp.Live || a.Realtime
+		if s.Collect != nil && s.Collect.Recent.Count(c.Meta.ID, a.LineID, "crowded", 20*time.Minute, time.Now()) > 0 {
+			arr[i].Crowded = true
+		}
 	}
 	if err != nil {
 		if notFound(w, err) {
@@ -358,6 +368,23 @@ func (s *Server) search(w http.ResponseWriter, r *http.Request, c *city.City) {
 		q = string([]rune(q)[:64])
 	}
 	writeJSON(w, http.StatusOK, c.Search(q, 25), time.Minute)
+}
+
+func (s *Server) nearbyVehicles(w http.ResponseWriter, r *http.Request, c *city.City) {
+	lat, ok1 := floatParam(r, "lat")
+	lon, ok2 := floatParam(r, "lon")
+	if !ok1 || !ok2 {
+		fail(w, http.StatusBadRequest, "lat ve lon gerekli")
+		return
+	}
+	radius, ok := floatParam(r, "radius")
+	if !ok || radius <= 0 || radius > 1500 {
+		radius = 900
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+	vs := c.NearbyVehicles(ctx, lat, lon, radius, 16)
+	writeJSON(w, http.StatusOK, map[string]any{"vehicles": vs, "fetchedAt": time.Now()}, 5*time.Second)
 }
 
 func (s *Server) plan(w http.ResponseWriter, r *http.Request, c *city.City) {

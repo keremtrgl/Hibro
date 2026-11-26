@@ -8,6 +8,15 @@
 //	HIBRO_MOTIS_URL   MOTIS base URL, enables /plan (optional)
 //	HIBRO_REFRESH     static data refresh period (default 24h)
 //	HIBRO_LOG_LEVEL   debug|info|warn           (default info)
+//
+// Opt-in data collection (see docs/VERI_TOPLAMA.md):
+//
+//	HIBRO_COLLECT              on|off                          (default on)
+//	HIBRO_COLLECT_DIR          where contributions are stored  (default ./collected)
+//	HIBRO_TRIP_RETENTION_DAYS  raw GPS trace retention         (default 30)
+//	HIBRO_REPORT_RETENTION_DAYS rider report retention         (default 365)
+//	HIBRO_TRUST_PROXY          1 behind Caddy (rate limiting)  (default 0)
+//	HIBRO_ADMIN_TOKEN          enables GET /admin/stats        (optional)
 package main
 
 import (
@@ -69,6 +78,16 @@ func main() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+
+	if env("HIBRO_COLLECT", "on") != "off" {
+		col, err := setupCollect(ctx, loc, log)
+		if err != nil {
+			log.Error("data collection disabled", "err", err)
+		} else {
+			srv.Collect = col
+			defer col.Store.Close()
+		}
+	}
 
 	// Serve immediately (health reports 503 until a city is loaded) and
 	// load cities in the background so a slow municipality never blocks
