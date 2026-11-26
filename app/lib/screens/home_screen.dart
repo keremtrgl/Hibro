@@ -11,6 +11,7 @@ import '../util/style.dart';
 import '../util/text.dart';
 import '../widgets/common.dart';
 import 'line_screen.dart';
+import 'plan_screen.dart';
 import 'search_screen.dart';
 import '../widgets/city_sheet.dart';
 import 'stop_screen.dart';
@@ -308,6 +309,44 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (stop != null) _openStop(stop);
   }
 
+  /// Long press anywhere: plan a route there or open the nearest stop.
+  Future<void> _onLongPress(LatLng ll) async {
+    final s = _state;
+    if (s == null || !s.hasCity) return;
+    final nearest = s.nearby(ll.latitude, ll.longitude, radius: 600, limit: 1);
+    final point = m.Stop(id: '', name: 'Haritada seçilen nokta', lat: ll.latitude, lon: ll.longitude, mode: m.Mode.bus);
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          if (s.city.features.planner)
+            ListTile(
+              leading: const Icon(Icons.directions),
+              title: const Text('Buraya nasıl giderim?'),
+              subtitle: const Text('Konumundan, şimdi yola çıkarsan'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.of(this.context).push(MaterialPageRoute(builder: (_) => PlanScreen(destination: point)));
+              },
+            ),
+          if (nearest.isNotEmpty)
+            ListTile(
+              leading: ModeAvatar(mode: nearest.first.stop.mode),
+              title: Text(nearest.first.stop.name),
+              subtitle: Text('En yakın durak · ${formatDistance(nearest.first.distanceM)}'),
+              onTap: () {
+                Navigator.pop(context);
+                _openStop(nearest.first.stop);
+              },
+            ),
+          if (nearest.isEmpty && !s.city.features.planner)
+            const ListTile(leading: Icon(Icons.info_outline), title: Text('Bu noktanın yakınında durak yok')),
+        ]),
+      ),
+    );
+  }
+
   void _openStop(m.Stop s) {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => StopScreen(stop: s)));
   }
@@ -362,6 +401,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             c.onFeatureTapped.add(_onFeatureTapped);
           },
           onStyleLoadedCallback: _onStyleLoaded,
+          onMapLongClick: (_, ll) => _onLongPress(ll),
           onCameraIdle: _onCameraIdle,
           onCameraMoveStarted: (reason) {
             if (reason == CameraMoveReason.gesture) _followMe = false;

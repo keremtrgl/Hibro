@@ -163,7 +163,9 @@ func (c *City) Info() model.CityInfo {
 		info.Bounds = [4]float64{round4(a), round4(b), round4(cc), round4(d)}
 	}
 	for _, s := range c.order {
-		info.Sources = append(info.Sources, s.Info())
+		si := s.Info()
+		si.Prefix = s.Prefix()
+		info.Sources = append(info.Sources, si)
 		f := s.Features()
 		info.Features.LiveArrivals = info.Features.LiveArrivals || f.LiveArrivals
 		info.Features.LiveVehicles = info.Features.LiveVehicles || f.LiveVehicles

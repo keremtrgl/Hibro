@@ -9,6 +9,7 @@ import '../api/models.dart';
 import '../state/app_state.dart';
 import '../state/scope.dart';
 import '../util/geo.dart';
+import '../util/notify.dart';
 import '../util/text.dart';
 import '../widgets/common.dart';
 import 'privacy_screen.dart';
@@ -108,6 +109,7 @@ class _RideScreenState extends State<RideScreen> {
   Future<void> _start() async {
     final s = AppScope.read(context);
     s.track('ride_start');
+    await Notifier.requestPermission();
     if (!await s.startLocation()) {
       setState(() => _error = 'Yolculuk modu için konum izni gerekli.');
       return;
@@ -143,6 +145,8 @@ class _RideScreenState extends State<RideScreen> {
 
   Future<void> _alarm() async {
     AppScope.read(context).track('ride_alarm');
+    // System notification: works with the screen off or the phone in a pocket.
+    Notifier.stopAlarm(_dest!.name, alarmDistanceM.round());
     SystemSound.play(SystemSoundType.alert);
     for (var i = 0; i < 4; i++) {
       HapticFeedback.heavyImpact();

@@ -142,6 +142,9 @@ type Alert struct {
 }
 
 type SourceInfo struct {
+	// Prefix of the stop/line ids this source provides ("b", "m"...), so
+	// the app can tell which stops a stale/unofficial note applies to.
+	Prefix    string    `json:"prefix,omitempty"`
 	Name      string    `json:"name"`
 	License   string    `json:"license"`
 	URL       string    `json:"url"`

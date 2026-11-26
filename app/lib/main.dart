@@ -10,6 +10,7 @@ import 'screens/home_screen.dart';
 import 'screens/settings_screen.dart';
 import 'state/app_state.dart';
 import 'state/scope.dart';
+import 'util/notify.dart';
 import 'widgets/city_sheet.dart';
 import 'widgets/consent_sheet.dart';
 
@@ -22,6 +23,7 @@ Future<void> main() async {
       await setMaximumAmbientCacheSize(150 * 1024 * 1024);
     } catch (_) {}
   }
+  await Notifier.init();
   final prefs = await SharedPreferences.getInstance();
   final state = AppState(prefs);
   runApp(AppScope(state: state, child: const HibroApp()));

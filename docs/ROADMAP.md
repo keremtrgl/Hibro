@@ -131,13 +131,17 @@ Ayrıntılı tasarım ve KVKK kontrol listesi: [VERI_TOPLAMA.md](VERI_TOPLAMA.md
 - [x] Sunucuda depolama (günlük JSONL), hız sınırı, token korumalı `/admin/stats`
 - [x] Aydınlatma metni ve açık rıza metni **taslakları** (`docs/legal/`)
 
+- [x] Canlı sistem boşken/çökükken İzmir duraklarında tarifeden **tahmini** saatler
+- [x] Haritada basılı tut → "Buraya nasıl giderim?" / en yakın durak
+- [x] Rota seçenekleri haritada çiziliyor (araç hat renginde, yürüyüş kesikli)
+
 **Sıradaki:**
 - [ ] Aydınlatma ve açık rıza metinlerini avukata onaylatmak; veri sorumlusunu belirlemek
 - [ ] Haftalık veri düzeltme turu: `wrong_stop`/`wrong_time` bildirimlerini işleyen düzeltme katmanı (`overrides`)
 - [ ] Hayalet araç dedektörü: "gelmedi" bildirimleri + yolculuk izleriyle hat bazlı GPS yaş eşiği
 - [ ] Yolculuk izlerinden ESHOT hat-durak sırası çıkarımı
 - [ ] Segment süreleri → öğrenen varış tahmini (hedef: belediye ETA'sından %30 daha az hata)
-- [ ] İnilecek durak için gerçek sistem bildirimi (`flutter_local_notifications`)
+- [x] İnilecek durak için gerçek sistem bildirimi (kilit ekranında da görünür)
 - [ ] Bildirim kötüye kullanımına karşı güven puanı (aynı oturumdan tekrarlı bildirimler, çelişen bildirimler)
 - [ ] Gizlilik dostu çökme raporları (self-hosted GlitchTip, izinle)
 - [ ] Play Store "Data safety" formu

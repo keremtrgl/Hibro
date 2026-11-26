@@ -119,7 +119,7 @@ class _StopScreenState extends State<StopScreen> with WidgetsBindingObserver {
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(children: [
-          const StaleBanner(),
+          StaleBanner(id: widget.stop.id),
           if (lines.isNotEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -199,6 +199,13 @@ class _StopScreenState extends State<StopScreen> with WidgetsBindingObserver {
         onReport: () => showReportSheet(context, stop: widget.stop, line: AppScope.read(context).lineById[a.lineId], lineId: a.lineId, plate: a.plate),
       ));
     }
+    if (r.arrivals.isNotEmpty && r.arrivals.every((a) => a.estimated)) {
+      out.insert(0, Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+        child: Text('Belediyenin canlı sistemi şu an araç göstermiyor; tarifeden tahmini saatler gösteriliyor.',
+            style: t.textTheme.bodySmall?.copyWith(color: t.colorScheme.onSurfaceVariant)),
+      ));
+    }
     if (r.arrivals.isNotEmpty) {
       out.add(Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -231,7 +238,7 @@ class _ArrivalTile extends StatelessWidget {
     final details = <String>[
       if (a.stopsAway > 0) '${a.stopsAway} durak önce',
       if (a.plate.isNotEmpty) a.plate,
-      if (!a.realtime) 'Planlı ${a.time}',
+      if (a.estimated) 'Tahmini ${a.time}' else if (!a.realtime) 'Planlı ${a.time}',
       if (a.isLast) 'Son sefer',
     ];
     return ListTile(

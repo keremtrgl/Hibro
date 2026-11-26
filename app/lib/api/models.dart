@@ -93,11 +93,11 @@ class Features {
 }
 
 class SourceInfo {
-  final String name, license, url, note;
+  final String name, license, url, note, prefix;
   final DateTime? updatedAt;
   final bool stale; // outdated fallback data (e.g. Kocaeli 2018 archive)
   final bool unofficial; // community generated, not from the operator
-  SourceInfo(this.name, this.license, this.url, this.updatedAt, {this.stale = false, this.unofficial = false, this.note = ''});
+  SourceInfo(this.name, this.license, this.url, this.updatedAt, {this.stale = false, this.unofficial = false, this.note = '', this.prefix = ''});
   factory SourceInfo.fromJson(Map<String, dynamic> j) => SourceInfo(
         _s(j['name']),
         _s(j['license']),
@@ -106,6 +106,7 @@ class SourceInfo {
         stale: j['stale'] == true,
         unofficial: j['unofficial'] == true,
         note: _s(j['note']),
+        prefix: _s(j['prefix']),
       );
 }
 
@@ -118,8 +119,12 @@ class CityInfo {
   final List<double>? bounds; // [minLat, minLon, maxLat, maxLon]
 
   /// Explanation shown when any of the city's data is outdated.
-  String? get staleNote {
+  /// Warning for an id ("z:12" -> the İZBAN source), or for the whole
+  /// city when [id] is null. Only stale/unofficial sources produce one.
+  String? staleNote([String? id]) {
+    final prefix = id?.split(':').first;
     for (final s in sources) {
+      if (prefix != null && s.prefix.isNotEmpty && s.prefix != prefix) continue;
       if (s.stale || s.unofficial) {
         return s.note.isEmpty ? 'Bu şehrin verisi güncel olmayabilir.' : s.note;
       }
@@ -161,7 +166,7 @@ class Arrival {
   final String lineId, line, headsign, color, time, plate;
   final Mode mode;
   final int minutes, distanceM, stopsAway;
-  final bool realtime, isLast, crowded;
+  final bool realtime, isLast, crowded, estimated;
   final bool? accessible, bicycle, electric;
   final double lat, lon; // live vehicle position, 0 when unknown
   Arrival.fromJson(Map<String, dynamic> j)
@@ -178,6 +183,7 @@ class Arrival {
         realtime = j['realtime'] == true,
         isLast = j['isLast'] == true,
         crowded = j['crowded'] == true,
+        estimated = j['estimated'] == true,
         lat = _d(j['lat']),
         lon = _d(j['lon']),
         accessible = j['accessible'] as bool?,
@@ -255,7 +261,8 @@ class Vehicle {
 }
 
 class Leg {
-  final String mode, line, headsign, color, note;
+  final String mode, line, headsign, color, note, polyline;
+  final int precision;
   final StopRef from, to;
   final DateTime start, end;
   final int distanceM, numStops;
@@ -265,6 +272,8 @@ class Leg {
         headsign = _s(j['headsign']),
         color = _s(j['color']),
         note = _s(j['note']),
+        polyline = _s(j['polyline']),
+        precision = _i(j['precision']),
         from = StopRef.fromJson(j['from'] as Map<String, dynamic>),
         to = StopRef.fromJson(j['to'] as Map<String, dynamic>),
         start = DateTime.parse(_s(j['start'])).toLocal(),

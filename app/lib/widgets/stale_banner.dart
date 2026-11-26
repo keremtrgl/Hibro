@@ -5,11 +5,15 @@ import '../state/scope.dart';
 /// Warns that the city's timetable data may be outdated. Shown on stop
 /// and line screens; renders nothing for cities with current data.
 class StaleBanner extends StatelessWidget {
-  const StaleBanner({super.key});
+  const StaleBanner({super.key, this.id});
+
+  /// Stop or line id: the banner only shows when its own source is
+  /// outdated or unofficial (İZBAN's old timetable must not mark metro).
+  final String? id;
 
   @override
   Widget build(BuildContext context) {
-    final note = AppScope.of(context).city.staleNote;
+    final note = AppScope.of(context).city.staleNote(id);
     if (note == null) return const SizedBox.shrink();
     final t = Theme.of(context);
     return Material(

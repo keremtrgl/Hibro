@@ -268,7 +268,7 @@ class _LineScreenState extends State<LineScreen> with WidgetsBindingObserver {
                   ]),
                 ),
                 if (d == null) const LinearProgressIndicator(),
-                const StaleBanner(),
+                StaleBanner(id: widget.lineId),
                 if (d != null && d.alerts.isNotEmpty)
                   Material(
                     color: t.colorScheme.tertiaryContainer,
