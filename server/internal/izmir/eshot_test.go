@@ -161,3 +161,24 @@ func TestSourceWithFakeUpstream(t *testing.T) {
 		t.Fatal("910 should be a night (Baykuş) line")
 	}
 }
+
+func TestRoutingFeedFromDeparturesAndOffsets(t *testing.T) {
+	lines, _ := ParseLines(read(t, "hatlar.json"))
+	stops, _ := ParseStops(read(t, "duraklar.json"))
+	st := &Static{
+		Lines: lines, Stops: stops,
+		Schedule:    map[SchedKey][]string{{"19", 1, "weekday"}: {"07:00", "07:30"}},
+		StopSeq:     map[ShapeKey][]string{{"19", 1}: {"12337", "12345"}},
+		StopOffsets: map[ShapeKey][]int32{{"19", 1}: {0, 240}},
+	}
+	f, err := RoutingFeed(st)
+	if err != nil || f == nil {
+		t.Fatalf("%v %v", err, f)
+	}
+	if len(f.Trips) != 2 {
+		t.Fatalf("trips = %d", len(f.Trips))
+	}
+	if got := f.TripStops[1][1].Arr; got != 7*3600+30*60+240 {
+		t.Fatalf("second trip arrival at 2nd stop = %d", got)
+	}
+}

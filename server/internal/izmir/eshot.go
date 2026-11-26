@@ -467,9 +467,12 @@ type Static struct {
 	// From the ESHOT GTFS (optional): ordered stop codes per line and
 	// direction, and the lines serving each stop. The live API has
 	// neither.
-	StopSeq   map[ShapeKey][]string
-	StopLines map[string][]string
-	SeqSource string // e.g. "ESHOT GTFS (2024)"
+	StopSeq map[ShapeKey][]string
+	// Seconds from the first stop to each stop of StopSeq (GTFS travel
+	// times), used to build a routable timetable from current departures.
+	StopOffsets map[ShapeKey][]int32
+	StopLines   map[string][]string
+	SeqSource   string // e.g. "ESHOT GTFS (2024)"
 }
 
 // ApplyGTFS takes stop order and stop->line lists from an ESHOT GTFS feed
@@ -477,19 +480,24 @@ type Static struct {
 // ESHOT Yon 1/2, swapped per line when the route shape says otherwise.
 func ApplyGTFS(st *Static, f *gtfs.Feed, label string) {
 	st.StopSeq = map[ShapeKey][]string{}
+	st.StopOffsets = map[ShapeKey][]int32{}
 	lines := map[string]map[string]bool{}
 	for key, ti := range f.RepTrip {
 		route := f.Routes[key[0]].ID
 		var seq []string
-		for _, s := range f.TripStops[ti] {
+		var offs []int32
+		sts := f.TripStops[ti]
+		for _, s := range sts {
 			code := f.Stops[s.Stop].ID
 			seq = append(seq, code)
+			offs = append(offs, s.Arr-sts[0].Dep)
 			if lines[code] == nil {
 				lines[code] = map[string]bool{}
 			}
 			lines[code][route] = true
 		}
 		st.StopSeq[ShapeKey{route, int(key[1]) + 1}] = seq
+		st.StopOffsets[ShapeKey{route, int(key[1]) + 1}] = offs
 	}
 	// Fix direction numbering using the ESHOT route shapes.
 	stopPos := map[string][2]float64{}
@@ -507,6 +515,8 @@ func ApplyGTFS(st *Static, f *gtfs.Feed, label string) {
 		dOther := geo.DistanceM(p[0], p[1], sh[len(sh)-1][0], sh[len(sh)-1][1])
 		if dOther+200 < dSame { // first stop sits at the shape's far end
 			st.StopSeq[ShapeKey{l.No, 1}], st.StopSeq[ShapeKey{l.No, 2}] = b, a
+			k1, k2 := ShapeKey{l.No, 1}, ShapeKey{l.No, 2}
+			st.StopOffsets[k1], st.StopOffsets[k2] = st.StopOffsets[k2], st.StopOffsets[k1]
 		}
 	}
 	st.StopLines = map[string][]string{}
@@ -589,6 +599,17 @@ type ESHOT struct {
 	vehicles   *cache.TTL[[]model.Vehicle]
 	// Fetch is used for live calls; replaced in tests.
 	Fetch func(ctx context.Context, url string) ([]byte, error)
+	// routing is a synthetic GTFS (current departures + GTFS travel
+	// times) used only by the journey planner.
+	routing *gtfs.Source
+}
+
+// RoutingSources exposes the synthetic timetable to the planner.
+func (e *ESHOT) RoutingSources() []*gtfs.Source {
+	if e.routing == nil {
+		return nil
+	}
+	return []*gtfs.Source{e.routing}
 }
 
 func NewESHOT(prefix string, st *Static, fc *fetch.Client, ep Endpoints) *ESHOT {
@@ -606,6 +627,9 @@ func NewESHOT(prefix string, st *Static, fc *fetch.Client, ep Endpoints) *ESHOT 
 	for _, s := range st.Stops {
 		e.stops[s.Code] = true
 		e.stopByCode[s.Code] = s
+	}
+	if f, err := RoutingFeed(st); err == nil && f != nil {
+		e.routing = gtfs.NewSource(prefix, f, model.SourceInfo{Name: "ESHOT (planlama için)", Estimated: true})
 	}
 	e.Fetch = func(ctx context.Context, u string) ([]byte, error) {
 		// The ESHOT API intermittently returns empty bodies; retry those.

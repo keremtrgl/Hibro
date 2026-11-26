@@ -173,6 +173,9 @@ func (c *City) Info() model.CityInfo {
 }
 
 func (c *City) Stops() []model.Stop { return c.stops }
+
+// Sources returns the city's data sources in load order.
+func (c *City) Sources() []Source   { return c.order }
 func (c *City) Lines() []model.Line { return c.lines }
 
 func (c *City) Stop(id string) (model.Stop, bool) {

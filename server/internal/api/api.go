@@ -22,15 +22,19 @@ import (
 	"github.com/keremtrgl/hibro/server/internal/izmir"
 	"github.com/keremtrgl/hibro/server/internal/model"
 	"github.com/keremtrgl/hibro/server/internal/plan"
+	"github.com/keremtrgl/hibro/server/internal/raptor"
 )
 
 type Server struct {
 	Cities  *city.Registry
-	Planner *plan.MOTIS
-	Collect *Collect // nil disables contribution endpoints
-	Log     *slog.Logger
-	Now     func() time.Time
-	Loc     *time.Location
+	Planner *plan.MOTIS // external planner; nil uses the built-in RAPTOR
+
+	plMu     sync.Mutex
+	planners map[string]cityPlanner
+	Collect  *Collect // nil disables contribution endpoints
+	Log      *slog.Logger
+	Now      func() time.Time
+	Loc      *time.Location
 }
 
 func (s *Server) now() time.Time {
@@ -246,7 +250,7 @@ func (s *Server) cities(w http.ResponseWriter, r *http.Request) {
 	out := []model.CityInfo{}
 	for _, c := range s.Cities.All() {
 		info := c.Info()
-		info.Features.Planner = s.Planner != nil
+		info.Features.Planner = s.hasPlanner(c)
 		out = append(out, info)
 	}
 	writeCached(w, r, out, 5*time.Minute)
@@ -254,7 +258,7 @@ func (s *Server) cities(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) cityInfo(w http.ResponseWriter, r *http.Request, c *city.City) {
 	info := c.Info()
-	info.Features.Planner = s.Planner != nil
+	info.Features.Planner = s.hasPlanner(c)
 	writeCached(w, r, info, 5*time.Minute)
 }
 
@@ -262,7 +266,7 @@ func (s *Server) cityInfo(w http.ResponseWriter, r *http.Request, c *city.City) 
 // re-downloads it when the city data actually changed.
 func (s *Server) pack(w http.ResponseWriter, r *http.Request, c *city.City) {
 	body := c.PackJSON(func(p model.Pack) []byte {
-		p.City.Features.Planner = s.Planner != nil
+		p.City.Features.Planner = s.hasPlanner(c)
 		b, _ := json.Marshal(p)
 		return b
 	})
@@ -416,9 +420,61 @@ func (s *Server) nearbyVehicles(w http.ResponseWriter, r *http.Request, c *city.
 	writeJSON(w, http.StatusOK, map[string]any{"vehicles": vs, "fetchedAt": time.Now()}, 5*time.Second)
 }
 
+type cityPlanner struct {
+	c *city.City
+	p *raptor.Planner
+}
+
+// gtfsSources returns the city's timetable sources usable for routing.
+func gtfsSources(c *city.City) []raptor.Source {
+	var out []raptor.Source
+	for _, src := range c.Sources() {
+		if rs, ok := src.(raptor.Source); ok {
+			out = append(out, rs)
+		}
+		// Sources without a GTFS of their own (ESHOT) may offer a
+		// timetable built for routing.
+		if rf, ok := src.(interface{ RoutingSources() []*gtfs.Source }); ok {
+			for _, g := range rf.RoutingSources() {
+				out = append(out, g)
+			}
+		}
+	}
+	return out
+}
+
+func (s *Server) hasPlanner(c *city.City) bool {
+	return s.Planner != nil || len(gtfsSources(c)) > 0
+}
+
+// builtinPlanner returns (building once per city snapshot) the RAPTOR
+// planner over the city's GTFS feeds.
+func (s *Server) builtinPlanner(c *city.City) *raptor.Planner {
+	srcs := gtfsSources(c)
+	if len(srcs) == 0 {
+		return nil
+	}
+	s.plMu.Lock()
+	defer s.plMu.Unlock()
+	if s.planners == nil {
+		s.planners = map[string]cityPlanner{}
+	}
+	if cp, ok := s.planners[c.Meta.ID]; ok && cp.c == c {
+		return cp.p
+	}
+	start := time.Now()
+	p := raptor.New(srcs...)
+	if s.Log != nil {
+		st, pats := p.Stats()
+		s.Log.Info("planner built", "city", c.Meta.ID, "stops", st, "patterns", pats, "took", time.Since(start).Round(time.Millisecond))
+	}
+	s.planners[c.Meta.ID] = cityPlanner{c, p}
+	return p
+}
+
 func (s *Server) plan(w http.ResponseWriter, r *http.Request, c *city.City) {
-	if s.Planner == nil {
-		fail(w, http.StatusNotImplemented, "rota planlayıcı bu sunucuda kurulu değil")
+	if !s.hasPlanner(c) {
+		fail(w, http.StatusNotImplemented, "bu şehirde rota planlama henüz yok")
 		return
 	}
 	q := r.URL.Query()
@@ -433,6 +489,17 @@ func (s *Server) plan(w http.ResponseWriter, r *http.Request, c *city.City) {
 		if tt, err := time.Parse(time.RFC3339, t); err == nil {
 			pq.Time = tt
 		}
+	}
+	if s.Planner == nil {
+		at := pq.Time
+		if at.IsZero() {
+			at = s.now()
+		} else if s.Loc != nil {
+			at = at.In(s.Loc)
+		}
+		its := s.builtinPlanner(c).Plan(pq.From, pq.To, at, 4)
+		writeJSON(w, http.StatusOK, map[string]any{"itineraries": its, "engine": "hibro-raptor"}, 0)
+		return
 	}
 	its, err := s.Planner.Plan(r.Context(), pq)
 	if err != nil {

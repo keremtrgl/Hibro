@@ -150,6 +150,8 @@ type SourceInfo struct {
 	Note  string `json:"note,omitempty"`
 	// Unofficial marks community-generated data (not from the operator).
 	Unofficial bool `json:"unofficial,omitempty"`
+	// Estimated marks times derived rather than published per stop.
+	Estimated bool `json:"estimated,omitempty"`
 }
 
 type Features struct {
@@ -205,4 +207,6 @@ type Leg struct {
 	Polyline  string    `json:"polyline,omitempty"`
 	Precision int       `json:"precision,omitempty"`
 	NumStops  int       `json:"numStops,omitempty"`
+	// Note warns about the times of this leg ("eski tarife", "tahmini saat").
+	Note string `json:"note,omitempty"`
 }

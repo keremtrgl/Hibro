@@ -56,6 +56,13 @@ func NewSource(prefix string, f *Feed, info model.SourceInfo) *Source {
 // lineID returns the public (merged) line id for a route index.
 func (s *Source) lineID(ri int32) string { return s.id(s.feed.Routes[s.canon[ri]].ID) }
 
+// LineID is the public line id for a route index (merged per-direction
+// routes share one id). Used by the journey planner.
+func (s *Source) LineID(ri int32) string { return s.lineID(ri) }
+
+// StopID is the public stop id for a stop index.
+func (s *Source) StopID(si int32) string { return s.id(s.feed.Stops[si].ID) }
+
 func (s *Source) Prefix() string           { return s.prefix }
 func (s *Source) Info() model.SourceInfo   { return s.info }
 func (s *Source) Features() model.Features { return model.Features{} }
