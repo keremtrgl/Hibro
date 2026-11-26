@@ -7,6 +7,7 @@ import '../state/scope.dart';
 import '../util/style.dart';
 import '../widgets/common.dart';
 import '../widgets/report_sheet.dart';
+import '../widgets/stale_banner.dart';
 import 'line_screen.dart';
 import 'plan_screen.dart';
 
@@ -105,6 +106,7 @@ class _StopScreenState extends State<StopScreen> with WidgetsBindingObserver {
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(children: [
+          const StaleBanner(),
           if (lines.isNotEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),

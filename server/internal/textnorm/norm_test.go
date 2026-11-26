@@ -27,6 +27,18 @@ func TestTitleTR(t *testing.T) {
 	if got := TitleTR("ÜÇKUYULAR İSKELE"); got != "Üçkuyular İskele" {
 		t.Errorf("got %q", got)
 	}
+	if got := TitleTR("OTOGAR-SEKAPARK"); got != "Otogar-Sekapark" {
+		t.Errorf("got %q", got)
+	}
+	if got := TitleTR("SGK İL MÜDÜRLÜĞÜ"); got != "SGK İl Müdürlüğü" {
+		t.Errorf("got %q", got)
+	}
+	if got := Nice("Konak İskele"); got != "Konak İskele" {
+		t.Errorf("mixed case must be kept: %q", got)
+	}
+	if got := Nice("MİLLİ İRADE MEYDANI"); got != "Milli İrade Meydanı" {
+		t.Errorf("got %q", got)
+	}
 	if got := TitleTR("KIRIKLAR"); got != "Kırıklar" {
 		t.Errorf("got %q", got)
 	}

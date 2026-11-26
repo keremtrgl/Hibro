@@ -101,7 +101,9 @@ Son güncelleme: 26 Kasım 2026
 Ankara, Bursa, Antalya, Kocaeli, Kayseri ve diğerleri.
 
 - [ ] **Belediye görüşmeleri:** "GTFS yayınlarsanız ücretsiz, reklamsız uygulamanızda gösteririz." Ücretsiz GTFS danışmanlığı teklif edilir.
-- [ ] KentKart şehirleri: `kk-gtfs` yaklaşımı **yalnızca izin alındıktan sonra** kullanılır
+- [x] **Kocaeli eklendi** (26.11.2026): güncel belediye GTFS'i (VPS'ten) + 2018 arşivi yedek, "eski veri" uyarısıyla
+- [ ] VPS'te güncel Kocaeli verisi inince `gtfsdiff` ile 2018'e göre değişimi ölç, sonucu buraya yaz
+- [ ] **KentKart ile resmi görüşme:** 27 şehirde (Adana, Antalya, Erzurum, Ordu, Düzce...) hat, durak ve canlı araç verisi onlarda. Anlaşma olursa tek adımda 27 şehir. `kk-gtfs` yaklaşımı **yalnızca izin alındıktan sonra** kullanılır
 - [ ] **Ankara:** OSM durakları (~2.700) + EGO'nun kamuya açık hat/sefer sayfalarından GTFS üretimi. Hat ilişkileri OSM'e topluluk katkısıyla eklenir.
 - [ ] Topluluk GTFS düzenleyici: gönüllülerin hat/durak düzeltmesi yapabileceği web aracı (moderasyonlu)
 - [ ] Üretilen feed'ler Transitous ve Mobility Database'e geri katkı olarak gönderilir

@@ -82,6 +82,47 @@ type Feed struct {
 	FeedEnd   int
 	Publisher string
 	svcIdx    map[string]int32
+	// StaleCalendar makes Active ignore calendar date ranges and
+	// exceptions and use only the weekday pattern. It is set for old
+	// archived feeds (e.g. Kocaeli 2018) so they still show timetables,
+	// clearly labelled as possibly outdated.
+	StaleCalendar bool
+}
+
+// ServiceEnd returns the latest end date (yyyymmdd) of any service.
+func (f *Feed) ServiceEnd() int {
+	end := f.FeedEnd
+	for _, s := range f.Services {
+		if s.End > end {
+			end = s.End
+		}
+		for d := range s.Added {
+			if d > end {
+				end = d
+			}
+		}
+	}
+	return end
+}
+
+// ZipFiles packs loose GTFS text files (as some portals publish them)
+// into an in-memory zip that Parse accepts.
+func ZipFiles(files map[string][]byte) ([]byte, error) {
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	for name, b := range files {
+		w, err := zw.Create(name)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := w.Write(b); err != nil {
+			return nil, err
+		}
+	}
+	if err := zw.Close(); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
 // Parse reads a GTFS zip held in memory.
@@ -257,7 +298,7 @@ func (f *Feed) readStops(t *table) error {
 		s := Stop{
 			ID:           t.get("stop_id"),
 			Code:         t.get("stop_code"),
-			Name:         textnorm.Clean(t.get("stop_name")),
+			Name:         textnorm.Nice(t.get("stop_name")),
 			Lat:          t.float("stop_lat"),
 			Lon:          t.float("stop_lon"),
 			LocationType: t.int("location_type"),
@@ -278,7 +319,7 @@ func (f *Feed) readRoutes(t *table) error {
 			ID:        t.get("route_id"),
 			Agency:    t.get("agency_id"),
 			Short:     textnorm.Clean(t.get("route_short_name")),
-			Long:      textnorm.Clean(t.get("route_long_name")),
+			Long:      textnorm.Nice(t.get("route_long_name")),
 			Color:     strings.TrimPrefix(t.get("route_color"), "#"),
 			TextColor: strings.TrimPrefix(t.get("route_text_color"), "#"),
 			Type:      t.int("route_type"),
@@ -363,7 +404,7 @@ func (f *Feed) readTrips(t *table, shapeIdx map[string]int32) error {
 			ID:       t.get("trip_id"),
 			Route:    ri,
 			Service:  f.service(t.get("service_id")),
-			Headsign: textnorm.Clean(t.get("trip_headsign")),
+			Headsign: textnorm.Nice(t.get("trip_headsign")),
 			Dir:      int8(t.int("direction_id")),
 			Shape:    sh,
 		})
@@ -464,6 +505,9 @@ func dateInt(t time.Time) int { return t.Year()*10000 + int(t.Month())*100 + t.D
 // Active reports whether service s runs on the service day d.
 func (f *Feed) Active(s int32, d time.Time) bool {
 	svc := &f.Services[s]
+	if f.StaleCalendar {
+		return svc.Weekdays[d.Weekday()]
+	}
 	di := dateInt(d)
 	if svc.Removed[di] {
 		return false

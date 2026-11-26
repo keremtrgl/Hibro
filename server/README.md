@@ -28,6 +28,12 @@ internal/fetch     disk cache'li indirici, CKAN keşfi
 internal/plan      MOTIS istemcisi
 ```
 
+**İki GTFS'i karşılaştırmak** (bir şehrin verisi ne kadar değişmiş?):
+
+```bash
+go run ./cmd/gtfsdiff eski.zip yeni.zip
+```
+
 Yeni şehir eklemek: GTFS'i varsa `cmd/hibro-server/cities.go` içine tek satır (`ckanCity(...)`). Canlı API'si varsa `internal/<şehir>` altında bir `city.Source` yazılır.
 
 ## API

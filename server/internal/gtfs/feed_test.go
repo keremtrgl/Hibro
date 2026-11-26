@@ -140,3 +140,37 @@ func TestMergesRoutesPublishedPerDirection(t *testing.T) {
 		t.Fatalf("merged detail: %v %+v", err, ld)
 	}
 }
+
+func TestStaleCalendarUsesWeekdayPattern(t *testing.T) {
+	files := map[string]string{}
+	for k, v := range tiny {
+		files[k] = v
+	}
+	// The feed's calendar ended in 2018.
+	files["calendar.txt"] = "service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date\nWK,1,1,1,1,1,0,0,20171203,20181231\nWE,0,0,0,0,0,1,1,20171203,20181231\n"
+	raw := map[string][]byte{}
+	for k, v := range files {
+		raw[k] = []byte(v)
+	}
+	z, err := ZipFiles(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, err := Parse(z)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f.ServiceEnd() != 20181231 {
+		t.Fatalf("service end %d", f.ServiceEnd())
+	}
+	src := NewSource("k", f, model.SourceInfo{})
+	thu := time.Date(2026, 11, 26, 7, 55, 0, 0, time.UTC)
+	if arr, _ := src.Arrivals(context.Background(), "S1", thu); len(arr) != 0 {
+		t.Fatalf("expired calendar should show nothing by default: %+v", arr)
+	}
+	f.StaleCalendar = true
+	arr, _ := src.Arrivals(context.Background(), "S1", thu)
+	if len(arr) == 0 || arr[0].Time != "08:00" {
+		t.Fatalf("stale mode should use the weekday pattern: %+v", arr)
+	}
+}

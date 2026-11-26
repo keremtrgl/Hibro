@@ -93,11 +93,18 @@ class Features {
 }
 
 class SourceInfo {
-  final String name, license, url;
+  final String name, license, url, note;
   final DateTime? updatedAt;
-  SourceInfo(this.name, this.license, this.url, this.updatedAt);
-  factory SourceInfo.fromJson(Map<String, dynamic> j) =>
-      SourceInfo(_s(j['name']), _s(j['license']), _s(j['url']), DateTime.tryParse(_s(j['updatedAt'])));
+  final bool stale; // outdated fallback data (e.g. Kocaeli 2018 archive)
+  SourceInfo(this.name, this.license, this.url, this.updatedAt, {this.stale = false, this.note = ''});
+  factory SourceInfo.fromJson(Map<String, dynamic> j) => SourceInfo(
+        _s(j['name']),
+        _s(j['license']),
+        _s(j['url']),
+        DateTime.tryParse(_s(j['updatedAt'])),
+        stale: j['stale'] == true,
+        note: _s(j['note']),
+      );
 }
 
 class CityInfo {
@@ -107,6 +114,14 @@ class CityInfo {
   final Features features;
   final List<SourceInfo> sources;
   final List<double>? bounds; // [minLat, minLon, maxLat, maxLon]
+
+  /// Explanation shown when any of the city's data is outdated.
+  String? get staleNote {
+    for (final s in sources) {
+      if (s.stale) return s.note.isEmpty ? 'Bu şehrin verisi güncel olmayabilir.' : s.note;
+    }
+    return null;
+  }
   CityInfo({
     required this.id,
     required this.name,

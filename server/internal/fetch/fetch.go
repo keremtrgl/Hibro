@@ -129,6 +129,33 @@ func (c *Client) JSON(ctx context.Context, url string, v any) error {
 	return json.Unmarshal(b, v)
 }
 
+// CKANResource is one file of a CKAN dataset.
+type CKANResource struct {
+	Name, URL, Format string
+}
+
+// CKANResources lists all resources of a dataset.
+func (c *Client) CKANResources(ctx context.Context, portal, pkg string) ([]CKANResource, error) {
+	var out struct {
+		Result struct {
+			Resources []struct {
+				URL    string `json:"url"`
+				Name   string `json:"name"`
+				Format string `json:"format"`
+			} `json:"resources"`
+		} `json:"result"`
+	}
+	u := strings.TrimRight(portal, "/") + "/api/3/action/package_show?id=" + pkg
+	if err := c.JSON(ctx, u, &out); err != nil {
+		return nil, err
+	}
+	res := make([]CKANResource, 0, len(out.Result.Resources))
+	for _, r := range out.Result.Resources {
+		res = append(res, CKANResource{Name: r.Name, URL: r.URL, Format: r.Format})
+	}
+	return res, nil
+}
+
 // CKANLatest finds the newest resource of a CKAN dataset whose format
 // matches (case-insensitive). Konya, for example, publishes a new
 // gtfs_11_YYYY.zip every year under a new URL.

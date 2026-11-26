@@ -144,6 +144,10 @@ type SourceInfo struct {
 	License   string    `json:"license"`
 	URL       string    `json:"url"`
 	UpdatedAt time.Time `json:"updatedAt"`
+	// Stale marks an outdated feed served as a fallback; Note explains it
+	// to the user (e.g. "Veri 2018 tarihli...").
+	Stale bool   `json:"stale,omitempty"`
+	Note  string `json:"note,omitempty"`
 }
 
 type Features struct {

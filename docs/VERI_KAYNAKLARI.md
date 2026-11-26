@@ -18,7 +18,7 @@ Durum işaretleri:
 | **Konya** | ✅ 179 hat, 4.494 durak, ücret + shapes | ❌ | ⚠️ 2022 CSV | GTFS çok kaliteli |
 | **Gaziantep** | ✅ 167 hat, 3.244 durak, 5 işletmeci, shapes | ❌ | ❌ | GTFS kaliteli |
 | **İstanbul** | 🌍 İBB portalında "public-transport-gtfs-data" | 🌍 İETT SOAP servisleri | 🌍 İETT SOAP | En büyük pazar, sunucu TR'de olmalı |
-| **Kocaeli** | ⚠️ Mobility DB'de 2017-2018 tarihli | ❌ resmi yok | ❌ | KentKart üzerinden topluluk GTFS'i var |
+| **Kocaeli** | 🌍 Güncel GTFS (`veri.kocaeli.bel.tr`, CC BY, 2025'ten beri aktif) · ✅ 2018 arşivi yedek olarak çalışıyor | ❌ resmi yok (KentKart özel) | ❌ | Uygulamada çalışıyor; VPS'ten güncel veriye geçecek |
 | **Ankara** | ❌ Resmi GTFS yok | ❌ resmi açık API yok | ❌ | OSM'de ~2.700 durak; EGO verisi Ekim 2024'ten beri yayınlanmıyor |
 | **Antalya, Sakarya, Kayseri vb. (KentKart şehirleri)** | ⚠️ Topluluk üretimi (kk-gtfs) | ⚠️ KentKart uç noktaları (resmi değil) | ⚠️ | Lisans/izin netleştirilmeli |
 | **Bursa** | ❌ bulunamadı | ❌ | ❌ | Açık veri portalı var, ulaşım verisi doğrulanmadı |
@@ -106,11 +106,24 @@ Portal: <https://data.ibb.gov.tr> · Lisans: İBB Açık Veri Lisansı (CC BY 4.
   - `Rednexie/istnext` (★36): İstanbul ulaşım uygulaması
   - `luna-cant-code/istanbul-gtfs`: İstanbul GTFS derlemesi
 
-### 2.5 Kocaeli
+### 2.5 Kocaeli (26.11.2026'da araştırıldı ve eklendi)
 
-- Mobility Database `mdb-1122` / `mdb-2710`: Belediye kaynaklı GTFS, ama takvim 2017-12 → 2018-12 (eski). "Yalnızca TR kullanıcılarına açık" notu var.
-- `emirallak/Kocaeli-Sehirici-Ulasim-Rehberi`: topluluk projesi
-- KentKart altyapısı kullanılıyor, bkz. 2.7.
+| Kaynak | Durum |
+|---|---|
+| **Güncel GTFS:** <https://veri.kocaeli.bel.tr/dataset/toplu-ulasim-verisi> (Mobility DB `mdb-2710`, CC BY, Temmuz 2025'ten beri "aktif") | 🌍 Yalnızca Türkiye IP'sinden erişilebiliyor. GTFS tek zip değil, ayrı `.txt` dosyaları olarak yayınlanıyor; sunucu bunları birleştiriyor. |
+| **2018 arşivi:** Mobility DB `mdb-1122` (`files.mobilitydatabase.org/mdb-1122/...zip`) | ✅ İndirildi ve test edildi: 343 hat (5 tramvay, 4 vapur), 6.874 durak, 63.055 sefer, güzergâh çizgileri. Takvim 31.12.2018'de bitiyor. 2024 kopyası 2018 dosyasıyla **birebir aynı**. |
+| **KentKart** (`service.kentkart.com`, bölge `004`) | ⚠️ Canlı araç dahil her şey var ama özel şirket API'si; istek "bilgilerinizi eksiksiz giriniz" ile reddediliyor. **İzin olmadan kullanılmayacak.** |
+| **Moovit** | ❌ Kocaeli'yi gösteriyor ama verisini kopyalamak kullanım koşullarına ve telif hakkına aykırı. Moovit verisi büyük ihtimalle belediyenin aynı GTFS'inden geliyor. |
+
+**Sunucu davranışı:** Önce güncel veri denenir. Olmazsa 2018 arşivi "eski veri" olarak yüklenir: tarih aralıkları yok sayılır, sadece gün tipine göre (hafta içi/cumartesi/pazar) sefer gösterilir ve uygulamada uyarı çıkar.
+
+**Ne kadar değişmiş?** VPS'te güncel veri inince ölçülecek:
+
+```bash
+go run ./server/cmd/gtfsdiff kocaeli-2018.zip kocaeli-guncel.zip
+```
+
+Referans: Konya'da **1 yılda** (2025 → 2026) durakların %98'i aynı yerde kalmış; hatların %97'si korunmuş, korunan hatların %83'ünün güzergâhı aynı, %14'ü kısmen, %3'ü büyük ölçüde değişmiş; 16 yeni hat eklenmiş, 4 hat kaldırılmış. Kocaeli için 8 yıllık farkın bundan çok daha büyük olması beklenir: durakların çoğu yerinde olsa da sefer saatleri ve hat güzergâhlarının önemli kısmı değişmiş olabilir.
 
 ### 2.6 Ankara
 
@@ -118,7 +131,9 @@ Portal: <https://data.ibb.gov.tr> · Lisans: İBB Açık Veri Lisansı (CC BY 4.
 - OpenStreetMap'te ~2.700 Ankara durağı haritalanmış. Hat ilişkileri (route relation) eksik.
 - **Strateji:** OSM + EGO'nun kamuya açık hat/sefer sayfalarından **kendi GTFS'imizi üretmek** (Faz 3). Ayrıca ABB ile resmi veri paylaşımı görüşmesi yapılmalı.
 
-### 2.7 KentKart kullanan şehirler (Antalya, Kocaeli, Sakarya, Gaziantep vb.)
+### 2.7 KentKart kullanan şehirler
+
+KentKart'ın şehir listesinde **27 bölge** var (26.11.2026): Adana, Kocaeli, Sivas, Çanakkale, Muğla, Yozgat, Edirne, Burdur, Alanya, Ereğli, Niğde, Lüleburgaz, Kastamonu, Antalya, Kırklareli, Gaziantep, Alaplı, Altınova, Ordu, Mardin, Osmaniye, Düzce, Safranbolu, Erzurum, Tokat, Akçakoca, Çivril. Bu şehirlerin hat, durak, sefer saati ve **canlı araç** verisi KentKart'ta. KentKart ile resmi bir veri paylaşım anlaşması, Hibro'ya tek seferde 27 şehir kazandırabilir.
 
 - `Egezenn/kk-gtfs`: KentKart kullanan belediyelerin hatlarını GTFS'e çeviren topluluk aracı ve görüntüleyici.
 - ⚠️ KentKart uç noktaları **resmi açık veri değil.** Ticari üründe kullanmadan önce belediye veya KentKart'tan yazılı izin alınmalı. Aksi halde bu kaynak yalnızca prototip için kullanılır.

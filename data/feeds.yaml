@@ -134,12 +134,22 @@ feeds:
     notes: Filo/anlık konum ve duyuru servisleri de mevcut (doküman v1.4)
 
   # ---------------- KOCAELİ ----------------
-  - id: kcl-gtfs
+  - id: kcl-gtfs-current
+    city: kocaeli
+    type: gtfs_loose_files
+    discovery:
+      ckan: https://veri.kocaeli.bel.tr
+      package: toplu-ulasim-verisi
+    license: CC BY
+    status: geo_blocked
+    notes: Mobility DB mdb-2710, 2025'ten beri aktif, ayrı .txt dosyaları. Sunucu birleştiriyor.
+
+  - id: kcl-gtfs-2018
     city: kocaeli
     type: gtfs
-    url: https://mobilitydatabase.org/feeds/gtfs/mdb-1122
+    url: https://files.mobilitydatabase.org/mdb-1122/mdb-1122-202406071521/mdb-1122-202406071521.zip
     status: stale
-    notes: Takvim 2017-12 / 2018-12
+    notes: Takvim 2017-12 / 2018-12. Güncel veri inmezse 'eski veri' uyarısıyla kullanılıyor.
 
   # ---------------- KENTKART ŞEHİRLERİ ----------------
   - id: kentkart-community

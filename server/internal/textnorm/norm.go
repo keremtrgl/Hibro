@@ -46,14 +46,31 @@ func Fold(s string) string {
 	return strings.TrimSpace(b.String())
 }
 
+// acronyms stay upper case when title-casing.
+var acronyms = map[string]bool{
+	"SGK": true, "AVM": true, "PTT": true, "TED": true, "KYK": true, "TOKİ": true, "SSK": true,
+	"OSB": true, "TEM": true, "D100": true, "D-100": true, "ODTÜ": true, "İTÜ": true, "GOP": true,
+	"TCDD": true, "İZBAN": true, "ESHOT": true, "TRT": true, "KTÜ": true, "MTA": true,
+}
+
 // TitleTR converts an ALL CAPS Turkish string to Title Case, respecting
-// the dotted/dotless i rules ("ÜÇKUYULAR İSKELE" -> "Üçkuyular İskele").
+// the dotted/dotless i rules ("ÜÇKUYULAR İSKELE" -> "Üçkuyular İskele",
+// "OTOGAR-SEKAPARK" -> "Otogar-Sekapark"). Known acronyms stay upper case.
 func TitleTR(s string) string {
 	words := strings.Fields(s)
 	for i, w := range words {
+		if acronyms[w] {
+			continue
+		}
 		rs := []rune(w)
+		start := true
 		for j, r := range rs {
-			if j == 0 {
+			if !unicode.IsLetter(r) {
+				start = r == '-' || r == '/' || r == '(' || r == '.'
+				continue
+			}
+			if start {
+				start = false
 				continue
 			}
 			rs[j] = lowerTR(r)
@@ -61,6 +78,30 @@ func TitleTR(s string) string {
 		words[i] = string(rs)
 	}
 	return strings.Join(words, " ")
+}
+
+// IsAllCaps reports whether s has letters and none of them is lower case.
+func IsAllCaps(s string) bool {
+	hasUpper := false
+	for _, r := range s {
+		if unicode.IsLower(r) {
+			return false
+		}
+		if unicode.IsUpper(r) {
+			hasUpper = true
+		}
+	}
+	return hasUpper
+}
+
+// Nice title-cases s only when it is entirely upper case (as some
+// municipal feeds publish every name); mixed-case names are kept.
+func Nice(s string) string {
+	s = Clean(s)
+	if IsAllCaps(s) {
+		return TitleTR(s)
+	}
+	return s
 }
 
 func lowerTR(r rune) rune {

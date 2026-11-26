@@ -4,7 +4,7 @@
 //
 //	HIBRO_ADDR        listen address            (default :8080)
 //	HIBRO_DATA_DIR    download cache directory  (default ./data-cache)
-//	HIBRO_CITIES      comma separated city ids  (default izmir,konya,gaziantep)
+//	HIBRO_CITIES      comma separated city ids  (default izmir,konya,gaziantep,kocaeli)
 //	HIBRO_MOTIS_URL   MOTIS base URL, enables /plan (optional)
 //	HIBRO_REFRESH     static data refresh period (default 24h)
 //	HIBRO_LOG_LEVEL   debug|info|warn           (default info)
@@ -59,7 +59,7 @@ func main() {
 	fc.Log = log
 	reg := city.NewRegistry()
 	reg.Log = log
-	for _, id := range strings.Split(env("HIBRO_CITIES", "izmir,konya,gaziantep"), ",") {
+	for _, id := range strings.Split(env("HIBRO_CITIES", "izmir,konya,gaziantep,kocaeli"), ",") {
 		id = strings.TrimSpace(id)
 		l, ok := loaders[id]
 		if !ok {

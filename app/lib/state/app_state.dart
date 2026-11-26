@@ -25,6 +25,7 @@ final builtInCities = <CityInfo>[
   CityInfo(id: 'izmir', name: 'İzmir', lat: 38.4237, lon: 27.1428, zoom: 12.5, bounds: [37.8192, 26.2848, 39.364, 28.2391]),
   CityInfo(id: 'konya', name: 'Konya', lat: 37.8746, lon: 32.4932, zoom: 12.5, bounds: [37.6213, 32.3097, 38.2523, 32.9269]),
   CityInfo(id: 'gaziantep', name: 'Gaziantep', lat: 37.0662, lon: 37.3833, zoom: 12.5, bounds: [36.7003, 36.5829, 37.4057, 38.0246]),
+  CityInfo(id: 'kocaeli', name: 'Kocaeli', lat: 40.7654, lon: 29.9408, zoom: 12, bounds: [40.4096, 29.1875, 41.2092, 30.3661]),
 ];
 
 /// Map view of Türkiye, used before a city is chosen.

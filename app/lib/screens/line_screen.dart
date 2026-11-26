@@ -9,6 +9,7 @@ import '../state/scope.dart';
 import '../util/style.dart';
 import '../widgets/common.dart';
 import '../widgets/report_sheet.dart';
+import '../widgets/stale_banner.dart';
 import 'ride_screen.dart';
 import 'stop_screen.dart';
 
@@ -267,6 +268,7 @@ class _LineScreenState extends State<LineScreen> with WidgetsBindingObserver {
                   ]),
                 ),
                 if (d == null) const LinearProgressIndicator(),
+                const StaleBanner(),
                 if (d != null && d.alerts.isNotEmpty)
                   Material(
                     color: t.colorScheme.tertiaryContainer,
