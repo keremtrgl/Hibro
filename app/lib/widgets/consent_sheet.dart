@@ -22,7 +22,7 @@ class _ConsentSheet extends StatefulWidget {
 }
 
 class _ConsentSheetState extends State<_ConsentSheet> {
-  bool _usage = false, _trips = false;
+  bool _usage = false;
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +38,7 @@ class _ConsentSheetState extends State<_ConsentSheet> {
           const SizedBox(height: 8),
           Text(
             'Reklam yok, hesap yok. Belediye verisi çoğu zaman eksik ya da hatalı; '
-            'istersen anonim katkınla daha doğru varış süreleri sunabiliriz. İkisi de isteğe bağlı.',
+            'istersen anonim kullanım istatistiğiyle uygulamayı iyileştirmemize yardım edebilirsin. Tamamen isteğe bağlı.',
             style: t.textTheme.bodyMedium,
           ),
           const SizedBox(height: 8),
@@ -49,13 +49,6 @@ class _ConsentSheetState extends State<_ConsentSheet> {
             title: const Text('Anonim kullanım istatistikleri'),
             subtitle: const Text('Ekran ve özellik kullanım sayıları. Konum ve kimlik yok.'),
           ),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            value: _trips,
-            onChanged: (v) => setState(() => _trips = v),
-            title: const Text('Yolculuk verisi'),
-            subtitle: const Text('Sadece "Bu araca bindim" dediğinde, başı ve sonu silinmiş GPS izi.'),
-          ),
           TextButton(
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrivacyScreen())),
             child: const Text('Ayrıntılar: Gizlilik ve veri'),
@@ -65,7 +58,7 @@ class _ConsentSheetState extends State<_ConsentSheet> {
             Expanded(
               child: OutlinedButton(
                 onPressed: () {
-                  s.setConsent(usage: false, trips: false);
+                  s.setConsent(usage: false);
                   Navigator.pop(context);
                 },
                 child: const Text('Hiçbirini paylaşma'),
@@ -75,7 +68,7 @@ class _ConsentSheetState extends State<_ConsentSheet> {
             Expanded(
               child: FilledButton(
                 onPressed: () {
-                  s.setConsent(usage: _usage, trips: _trips);
+                  s.setConsent(usage: _usage);
                   Navigator.pop(context);
                 },
                 child: const Text('Kaydet'),

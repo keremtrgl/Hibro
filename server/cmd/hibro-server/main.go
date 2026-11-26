@@ -36,6 +36,7 @@ import (
 	"github.com/keremtrgl/hibro/server/internal/api"
 	"github.com/keremtrgl/hibro/server/internal/city"
 	"github.com/keremtrgl/hibro/server/internal/fetch"
+	"github.com/keremtrgl/hibro/server/internal/geocode"
 	"github.com/keremtrgl/hibro/server/internal/plan"
 )
 
@@ -95,6 +96,9 @@ func main() {
 	}
 	loc, _ := time.LoadLocation("Europe/Istanbul")
 	srv := &api.Server{Cities: reg, Planner: plan.NewMOTIS(os.Getenv("HIBRO_MOTIS_URL")), Log: log, Loc: loc}
+	if env("HIBRO_GEOCODER", "on") != "off" {
+		srv.Geo = geocode.NewNominatim(os.Getenv("HIBRO_GEOCODER_URL"), "Geliyo/0.4 (+https://geliyo.site)")
+	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

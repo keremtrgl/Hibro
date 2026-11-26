@@ -7,6 +7,7 @@ import 'package:material_ui/material_ui.dart';
 import '../api/models.dart' as m;
 import '../state/app_state.dart';
 import '../state/scope.dart';
+import '../util/geo.dart';
 import '../util/style.dart';
 import '../util/text.dart';
 import '../widgets/common.dart';
@@ -60,6 +61,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _busTimer = Timer(const Duration(seconds: 3), _pollBuses);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _state?.resumeLocationIfGranted());
   }
 
   @override
@@ -82,17 +84,28 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (_resumed) _pollBuses();
   }
 
+  /// True when the user's position is known and inside the current city:
+  /// then "nearby" (stops and buses) is about the user, not the map view,
+  /// so zooming or panning the map does not change the list.
+  bool get _useMe {
+    final s = _state;
+    if (s == null || s.myLat == null || !s.hasCity) return false;
+    return distanceM(s.myLat!, s.myLon!, s.city.lat, s.city.lon) < 60000;
+  }
+
   /// Live buses around the user (or the map centre). Runs only while the
-  /// map tab is visible, the app is in front and the map is zoomed in.
+  /// map tab is visible and the app is in front; around the map centre
+  /// only when zoomed in.
   Future<void> _pollBuses() async {
     _busTimer?.cancel();
     final s = _state;
     if (!mounted || s == null) return;
     // Data saver: nearby buses only after the user taps "Konumum".
-    final canPoll = widget.active && _resumed && s.city.features.liveVehicles && _zoom >= 13 && (!s.dataSaver || _followMe);
+    final me = _useMe;
+    final canPoll = widget.active && _resumed && s.city.features.liveVehicles && (me || _zoom >= 13) && (!s.dataSaver || _followMe);
     if (canPoll) {
-      final lat = _followMe && s.myLat != null ? s.myLat! : _centerLat;
-      final lon = _followMe && s.myLon != null ? s.myLon! : _centerLon;
+      final lat = me ? s.myLat! : _centerLat;
+      final lon = me ? s.myLon! : _centerLon;
       try {
         final v = await s.api.nearbyVehicles(s.cityId, lat, lon);
         if (!mounted) return;
@@ -157,8 +170,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void _recomputeNearby() {
     final s = _state;
     if (s == null) return;
-    final lat = s.myLat != null && _followMe ? s.myLat! : _centerLat;
-    final lon = s.myLat != null && _followMe ? s.myLon! : _centerLon;
+    final me = _useMe;
+    final lat = me ? s.myLat! : _centerLat;
+    final lon = me ? s.myLon! : _centerLon;
     final n = s.nearby(lat, lon, radius: 800, limit: 40);
     if (mounted) setState(() => _nearby = n);
   }
@@ -358,8 +372,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _centerLon = pos.target.longitude;
     final zoomedIn = pos.zoom >= 13 && _zoom < 13;
     _zoom = pos.zoom;
-    _recomputeNearby();
-    if (zoomedIn) _pollBuses();
+    if (!_useMe) _recomputeNearby(); // with a known position the list stays about the user
+    if (zoomedIn && !_useMe) _pollBuses();
   }
 
   Future<void> _locateMe() async {
@@ -393,7 +407,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return Scaffold(
       body: Stack(children: [
         MapLibreMap(
-          key: ValueKey(dark),
           styleString: dark ? mapStyleDark : mapStyleLight,
           initialCameraPosition: CameraPosition(target: LatLng(s.city.lat, s.city.lon), zoom: s.city.zoom),
           onMapCreated: (c) {
@@ -472,7 +485,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             scroll: scroll,
             nearby: _nearby,
             buses: _buses,
-            aroundMe: _followMe && s.myLat != null,
+            aroundMe: _useMe,
             onTap: _openStop,
             onLocate: _locateMe,
           ),
@@ -559,6 +572,20 @@ class _NearbySheet extends StatelessWidget {
                 ),
               ]),
             ),
+            if (s.hasCity && !s.city.features.liveVehicles)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                child: Row(children: [
+                  Icon(Icons.info_outline, size: 16, color: t.colorScheme.onSurfaceVariant),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      '${s.city.name} belediyesi anlık araç konumu paylaşmıyor; süreler sefer tarifesinden.',
+                      style: t.textTheme.bodySmall?.copyWith(color: t.colorScheme.onSurfaceVariant),
+                    ),
+                  ),
+                ]),
+              ),
             if (buses.isNotEmpty)
               SizedBox(
                 height: 44,
@@ -602,7 +629,9 @@ class _NearbySheet extends StatelessWidget {
                     ? 'Şehir seçilmedi. Arama çubuğundaki "Şehir seç"e dokun.'
                     : s.stops.isEmpty
                         ? 'Şehir verisi yükleniyor…'
-                        : 'Yakında durak yok. Haritayı kaydır veya yakınlaştır.',
+                        : aroundMe
+                            ? '800 m içinde durak yok. "Rota" ile gideceğin yeri arayabilirsin.'
+                            : 'Bu bölgede durak yok. Haritayı kaydır veya "Konumum"a dokun.',
                 textAlign: TextAlign.center,
                 style: t.textTheme.bodyMedium?.copyWith(color: t.colorScheme.onSurfaceVariant),
               ),

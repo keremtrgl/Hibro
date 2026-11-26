@@ -6,11 +6,11 @@ import 'package:material_ui/material_ui.dart';
 
 import '../api/models.dart' as m;
 import '../state/scope.dart';
+import '../util/map_icons.dart';
 import '../util/style.dart';
 import '../widgets/common.dart';
 import '../widgets/report_sheet.dart';
 import '../widgets/stale_banner.dart';
-import 'ride_screen.dart';
 import 'stop_screen.dart';
 
 class LineScreen extends StatefulWidget {
@@ -29,6 +29,7 @@ class _LineScreenState extends State<LineScreen> with WidgetsBindingObserver {
   Timer? _timer;
   MapLibreMapController? _map;
   bool _styleReady = false;
+  bool _iconsReady = false;
 
   @override
   void initState() {
@@ -114,9 +115,47 @@ class _LineScreenState extends State<LineScreen> with WidgetsBindingObserver {
       await c.addGeoJsonSource('route', _fc(const []));
       await c.addLineLayer('route', 'route-casing', const LineLayerProperties(lineColor: '#ffffff', lineWidth: 8, lineJoin: 'round', lineCap: 'round'), enableInteraction: false);
       await c.addLineLayer('route', 'route-line', LineLayerProperties(lineColor: _lineColor, lineWidth: 5, lineJoin: 'round', lineCap: 'round'), enableInteraction: false);
+      // Direction: chevrons along the line, an arrow at the first stop and
+      // a flag at the last one.
+      try {
+        await addRouteIcons(c);
+        await c.addSymbolLayer(
+          'route',
+          'route-chevrons',
+          const SymbolLayerProperties(
+            iconImage: 'route-chevron',
+            symbolPlacement: 'line',
+            symbolSpacing: 70,
+            iconAllowOverlap: true,
+            iconIgnorePlacement: true,
+            iconRotationAlignment: 'map',
+            iconSize: ['interpolate', ['linear'], ['zoom'], 11, 0.7, 15, 1.0],
+          ),
+          enableInteraction: false,
+        );
+        _iconsReady = true;
+      } catch (e) {
+        debugPrint('geliyo icons: $e');
+      }
       await c.addGeoJsonSource('lstops', _fc(const []), promoteId: 'sid');
       await c.addCircleLayer('lstops', 'lstops', CircleLayerProperties(circleColor: '#ffffff', circleRadius: 4.5, circleStrokeColor: _lineColor, circleStrokeWidth: 2.5));
       await c.addGeoJsonSource('veh', _fc(const []));
+      await c.addGeoJsonSource('ends', _fc(const []));
+      if (_iconsReady) {
+        await c.addSymbolLayer(
+          'ends',
+          'ends',
+          const SymbolLayerProperties(
+            iconImage: ['get', 'icon'],
+            iconRotate: ['get', 'rot'],
+            iconRotationAlignment: 'map',
+            iconAnchor: ['get', 'anchor'],
+            iconAllowOverlap: true,
+            iconIgnorePlacement: true,
+          ),
+          enableInteraction: false,
+        );
+      }
       await c.addCircleLayer('veh', 'veh-halo', CircleLayerProperties(circleColor: _lineColor, circleOpacity: 0.25, circleRadius: 14), enableInteraction: false);
       await c.addCircleLayer('veh', 'veh', CircleLayerProperties(circleColor: _lineColor, circleRadius: 8, circleStrokeColor: '#ffffff', circleStrokeWidth: 3), enableInteraction: false);
       _styleReady = true;
@@ -155,7 +194,23 @@ class _LineScreenState extends State<LineScreen> with WidgetsBindingObserver {
             },
           },
       ]));
-      final pts = dir.shape.isNotEmpty ? dir.shape : [for (final st in dir.stops) [st.lat, st.lon]];
+      final pts = dir.shape.length > 1 ? dir.shape : [for (final st in dir.stops) [st.lat, st.lon]];
+      if (_iconsReady && pts.length > 1) {
+        final a = dir.stops.isNotEmpty ? [dir.stops.first.lat, dir.stops.first.lon] : pts.first;
+        final b = dir.stops.isNotEmpty ? [dir.stops.last.lat, dir.stops.last.lon] : pts.last;
+        await c.setGeoJsonSource('ends', _fc([
+          {
+            'type': 'Feature',
+            'properties': {'icon': 'route-end', 'rot': 0, 'anchor': 'bottom-left'},
+            'geometry': {'type': 'Point', 'coordinates': [b[1], b[0]]},
+          },
+          {
+            'type': 'Feature',
+            'properties': {'icon': 'route-start', 'rot': startBearing(pts), 'anchor': 'center'},
+            'geometry': {'type': 'Point', 'coordinates': [a[1], a[0]]},
+          },
+        ]));
+      }
       if (pts.length > 1) {
         var minLat = 90.0, maxLat = -90.0, minLon = 180.0, maxLon = -180.0;
         for (final p in pts) {
@@ -239,7 +294,6 @@ class _LineScreenState extends State<LineScreen> with WidgetsBindingObserver {
                   height: MediaQuery.of(context).size.height * 0.34,
                   child: Stack(children: [
                     MapLibreMap(
-                      key: ValueKey(dark),
                       styleString: dark ? mapStyleDark : mapStyleLight,
                       initialCameraPosition: CameraPosition(target: LatLng(s.city.lat, s.city.lon), zoom: 11),
                       onMapCreated: (c) {
@@ -294,19 +348,18 @@ class _LineScreenState extends State<LineScreen> with WidgetsBindingObserver {
                       },
                     ),
                   ),
-                if (d != null && _direction != null)
+                if (d != null && (_direction?.stops.length ?? 0) > 1)
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.tonalIcon(
-                        onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                          builder: (_) => RideScreen(line: d.line, direction: _direction!),
-                        )),
-                        icon: const Icon(Icons.directions_bus_filled_outlined),
-                        label: const Text('Bu araca bindim · inilecek durakta uyar'),
-                      ),
-                    ),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    child: Row(children: [
+                      const Icon(Icons.arrow_circle_up, size: 18, color: Color(0xFF2E7D32)),
+                      const SizedBox(width: 4),
+                      Flexible(child: Text(_direction!.stops.first.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: t.textTheme.bodySmall)),
+                      const Padding(padding: EdgeInsets.symmetric(horizontal: 6), child: Icon(Icons.arrow_forward, size: 14)),
+                      const Icon(Icons.sports_score, size: 18, color: Color(0xFFD32F2F)),
+                      const SizedBox(width: 4),
+                      Flexible(child: Text(_direction!.stops.last.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: t.textTheme.bodySmall)),
+                    ]),
                   ),
                 if (d != null)
                   const TabBar(tabs: [Tab(text: 'Sefer saatleri'), Tab(text: 'Duraklar')]),

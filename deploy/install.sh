@@ -74,6 +74,11 @@ elif ! hostname -I | tr ' ' '\n' | grep -qx "$DNS_IP"; then
   warn "$DOMAIN -> $DNS_IP, ama bu sunucunun IP'leri: $(hostname -I). (NAT'lı VPS'lerde normal olabilir.)"
 fi
 
+# The server runs as uid 10001 inside the container; the data folders are
+# bind mounts, so they must be writable by that user (cache + reports).
+mkdir -p "$HERE/data/hibro" "$HERE/data/collect"
+chown -R 10001:10001 "$HERE/data/hibro" "$HERE/data/collect"
+
 say "Geliyo başlatılıyor (ilk derleme birkaç dakika sürebilir)"
 cd "$HERE"
 docker compose up -d --build

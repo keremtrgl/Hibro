@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/keremtrgl/hibro/server/internal/city"
+	"github.com/keremtrgl/hibro/server/internal/geocode"
 	"github.com/keremtrgl/hibro/server/internal/gtfs"
 	"github.com/keremtrgl/hibro/server/internal/izmir"
 	"github.com/keremtrgl/hibro/server/internal/model"
@@ -32,7 +33,8 @@ type Server struct {
 
 	plMu     sync.Mutex
 	planners map[string]cityPlanner
-	Collect  *Collect // nil disables contribution endpoints
+	Collect  *Collect           // nil disables contribution endpoints
+	Geo      *geocode.Nominatim // place search; nil disables it
 	Log      *slog.Logger
 	Now      func() time.Time
 	Loc      *time.Location
@@ -66,6 +68,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /v1/cities/{city}/alerts", s.withCity(s.alerts))
 	mux.HandleFunc("GET /v1/cities/{city}/search", s.withCity(s.search))
 	mux.HandleFunc("GET /v1/cities/{city}/plan", s.withCity(s.plan))
+	mux.HandleFunc("GET /v1/cities/{city}/places", s.withCity(s.places))
 	mux.HandleFunc("GET /v1/cities/{city}/vehicles/nearby", s.withCity(s.nearbyVehicles))
 	mux.HandleFunc("GET /v1/report-kinds", s.reportKinds)
 	mux.HandleFunc("POST /v1/cities/{city}/reports", s.withCity(s.postReport))
@@ -483,6 +486,39 @@ func (s *Server) builtinPlanner(c *city.City) *raptor.Planner {
 	}
 	s.planners[c.Meta.ID] = cityPlanner{c, p}
 	return p
+}
+
+// places searches addresses and points of interest inside the city
+// ("Kocaeli Üniversitesi", "Kefken") so a route can be planned to them.
+func (s *Server) places(w http.ResponseWriter, r *http.Request, c *city.City) {
+	if s.Geo == nil {
+		fail(w, http.StatusNotImplemented, "yer araması kapalı")
+		return
+	}
+	q := strings.TrimSpace(r.URL.Query().Get("q"))
+	if len([]rune(q)) < 3 {
+		writeJSON(w, http.StatusOK, map[string]any{"places": []geocode.Place{}}, 0)
+		return
+	}
+	if len([]rune(q)) > 80 {
+		q = string([]rune(q)[:80])
+	}
+	if s.Collect != nil && s.Collect.TeleLimit != nil && !s.Collect.TeleLimit.Allow(s.Collect.client(r)) {
+		fail(w, http.StatusTooManyRequests, "çok fazla arama, biraz bekle")
+		return
+	}
+	a, b, cc, d := c.Bounds(0.15)
+	ctx, cancel := context.WithTimeout(r.Context(), 12*time.Second)
+	defer cancel()
+	ps, err := s.Geo.Search(ctx, c.Meta.ID, q, [4]float64{a, b, cc, d})
+	if err != nil {
+		if s.Log != nil {
+			s.Log.Warn("place search failed", "err", err)
+		}
+		fail(w, http.StatusBadGateway, "yer araması şu an yapılamıyor")
+		return
+	}
+	writeCached(w, r, map[string]any{"places": ps}, time.Hour)
 }
 
 func (s *Server) plan(w http.ResponseWriter, r *http.Request, c *city.City) {

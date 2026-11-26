@@ -25,30 +25,22 @@ class PrivacyScreen extends StatelessWidget {
       body: ListView(children: [
         h('Kısaca'),
         p('Geliyo reklam göstermez ve verini kimseye satmaz. Hesap, telefon numarası veya e-posta istemez. '
-            'Aşağıdaki iki paylaşım tamamen isteğe bağlıdır ve varsayılan olarak kapalıdır.'),
+            'Aşağıdaki paylaşım tamamen isteğe bağlıdır ve varsayılan olarak kapalıdır.'),
         SwitchListTile(
           value: s.shareUsage,
           onChanged: (v) => s.setConsent(usage: v),
           title: const Text('Anonim kullanım istatistikleri'),
           subtitle: const Text('Hangi ekranların ne kadar kullanıldığına dair günlük toplam sayılar. Konum ve kimlik içermez.'),
         ),
-        SwitchListTile(
-          value: s.shareTrips,
-          onChanged: (v) => s.setConsent(trips: v),
-          title: const Text('Yolculuk verisi paylaş'),
-          subtitle: const Text('Yalnızca "Bu araca bindim" dediğinde, araçtayken GPS noktaları. Varış tahminlerini iyileştirir.'),
-        ),
         h('Konumun'),
         p('Konumun, yakındaki durakları ve otobüsleri göstermek için kullanılır. Yakındaki duraklar telefonunda hesaplanır. '
-            'Yakındaki otobüsleri sorarken ve rota ararken konum sunucuya gider ama kaydedilmez.'),
-        h('Yolculuk verisi nasıl korunur?'),
-        p('• Sadece sen "Bindim" dediğinde ve araçtayken kaydedilir.\n'
-            '• Yolculuğun ilk ve son 300 metresi telefonunda silinir; evin veya işin görünmez.\n'
-            '• Her gün değişen rastgele bir kimlikle gönderilir; sana bağlanamaz.\n'
-            '• Ham noktalar en fazla 30 gün saklanır, sonra yalnızca hat bazlı toplam istatistik kalır.\n'
-            '• Veriler Türkiye\'deki sunucumuzda tutulur, üçüncü kişilerle paylaşılmaz.'),
+            'Yakındaki otobüsleri sorarken ve rota ararken konum sunucuya gider ama kaydedilmez. Konum geçmişi tutulmaz.'),
+        h('Yer ve adres arama'),
+        p('Aradığın yer adı (ör. "Kocaeli Üniversitesi") sunucumuz üzerinden OpenStreetMap Nominatim hizmetine gönderilir. '
+            'Bu istekte senin konumun, IP adresin veya kimliğin yer almaz; sorgu yalnızca kısa süre önbellekte tutulur.'),
         h('Sorun bildirimleri'),
-        p('Bildirdiğin sorun türü, durak/hat ve yazdığın not saklanır (en fazla 1 yıl). Konum ve kimlik gönderilmez.'),
+        p('"Sorun bildir" ile gönderdiğin sorun türü, ilgili durak/hat ve yazdığın not Türkiye\'deki sunucumuzda saklanır (en fazla 1 yıl) '
+            've yalnızca veriyi düzeltmek için kullanılır. Konum ve kimlik gönderilmez; notuna kişisel bilgi yazmamanı öneririz.'),
         h('Favoriler ve ayarlar'),
         p('Yalnızca bu telefonda tutulur, sunucuya gönderilmez.'),
         h('Hakların'),
@@ -57,7 +49,6 @@ class PrivacyScreen extends StatelessWidget {
         ListTile(
           leading: const Icon(Icons.open_in_new),
           title: const Text('Tam gizlilik politikası'),
-          subtitle: Text('${s.api.baseUrl}/gizlilik'),
           onTap: () => launchUrl(Uri.parse('${s.api.baseUrl}/gizlilik'), mode: LaunchMode.externalApplication),
         ),
         const SizedBox(height: 32),

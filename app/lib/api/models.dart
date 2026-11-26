@@ -312,6 +312,21 @@ class NearbyVehicle {
         distanceM = _i(j['distanceM']);
 }
 
+/// A searched place (not a stop): university, neighbourhood, landmark.
+class Place {
+  final String name, detail, kind;
+  final double lat, lon;
+  Place.fromJson(Map<String, dynamic> j)
+      : name = _s(j['name']),
+        detail = _s(j['detail']),
+        kind = _s(j['kind']),
+        lat = _d(j['lat']),
+        lon = _d(j['lon']);
+
+  /// As a routing destination (PlanScreen takes a Stop).
+  Stop toStop() => Stop(id: '', name: name, lat: lat, lon: lon, mode: Mode.bus, district: detail);
+}
+
 /// Report kinds the server accepts (kept in the app so reporting works
 /// with a flaky connection; the server validates again).
 const reportKinds = <String, String>{

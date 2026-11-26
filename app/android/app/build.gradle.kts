@@ -22,13 +22,11 @@ plugins {
 
 android {
     namespace = "com.geliyo.app"
-    // 37: required by flutter_local_notifications / androidx.core (targetSdk unchanged)
+    // targetSdk follows Flutter; compileSdk 37 matches the installed platform.
     compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        // Needed by flutter_local_notifications (stop alarm).
-        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -80,6 +78,3 @@ flutter {
     source = "../.."
 }
 
-dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
-}

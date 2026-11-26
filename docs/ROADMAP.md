@@ -1,218 +1,168 @@
 # Geliyo Yol Haritası
 
 > **Vizyon:** Türkiye'nin reklamsız, en hızlı ve en güvenilir toplu taşıma uygulaması.
-> **Hedef:** Moovit'ten daha hızlı, daha hafif, daha doğru. Sıfır reklam.
+> **Hedef:** Moovit'ten daha hızlı, daha hafif, daha doğru. Sıfır reklam, sıfır izleyici.
 
-Son güncelleme: 26 Kasım 2026
+Son güncelleme: 26 Kasım 2026 · Uygulama sürümü **0.5.0** · Sunucu: `https://api.geliyo.site` (Rabisu VPS, Bursa)
 
----
-
-## 0. Moovit'i nerede geçeceğiz?
-
-| Alan | Moovit (gözlem) | Geliyo hedefi | Nasıl |
-|---|---|---|---|
-| Reklam | Banner, tam ekran, rota arası reklam | **0** | Reklam SDK'sı yok. Gelir: bağış, destekçi üyeliği, B2B. |
-| Uygulama boyutu | ~100 MB+ | Makul (katı sınır yok) | İzleme/reklam SDK'sı yok, vektör harita, SVG |
-| Soğuk açılış | 2-4 sn | **< 1 sn** (orta seviye Android) | İlk ekran tamamen yerel SQLite'tan |
-| "Yakındaki duraklar" | Ağ çağrısı bekler | **< 100 ms, internetsiz** | Çevrimdışı şehir paketi |
-| Rota hesaplama | 1-3 sn | **p95 < 800 ms** | MOTIS + cache |
-| Canlı araç güncelleme | Değişken | **≤ 15 sn** gecikme | Doğrudan belediye API'si + SSE |
-| Çevrimdışı | Sınırlı | **Tam:** durak, saat, planlı rota | Cihazda RAPTOR (Faz 4) |
-| Gizlilik | Çok sayıda 3. taraf SDK | **0 izleyici**, opt-in analitik | Self-hosted |
-| Veri şeffaflığı | Kaynak belirsiz | Her bilgide "kaynak: ESHOT, 12 sn önce" | RT köprüsü metadata'sı |
-| Erişilebilirlik | Orta | TalkBack/VoiceOver tam destek, büyük yazı | Tasarım sisteminde zorunlu |
+Bu doküman üç bölümden oluşur: **1. Nasıl çalışıyor**, **2. Neler yapıldı**, **3. Neler yapılmalı**.
 
 ---
 
-## Faz 0: Temel ve doğrulama (2 hafta)
+## 1. Nasıl çalışıyor?
 
-**Amaç:** Verinin gerçekten kullanılabilir olduğunu kanıtlamak.
+### 1.1 Genel resim
 
-- [x] Türkiye açık veri envanteri (`docs/VERI_KAYNAKLARI.md`, `data/feeds.yaml`)
-- [ ] Türkiye'de bir VPS kiralamak (İBB ve ESHOT geo-blok yüzünden şart). Karar verildi, gereksinimler [MIMARI §4.3](MIMARI.md)'te.
-- [ ] TR IP'den ESHOT GTFS'i ve İBB `public-transport-gtfs-data` veri setini indirip doğrulamak
-- [ ] Tüm feed'leri MobilityData `gtfs-validator` ile raporlamak
-- [ ] İzmir canlı API'lerini 24 saat boyunca loglamak: güncelleme sıklığı, kesinti oranı, ESHOT GTFS `trip_id` ile eşleşebilirlik
-- [ ] Lisans kontrolü: İzmir, Konya (CC BY 4.0), Gaziantep, İBB lisanslarının destekçi üyeliğine izin verip vermediği
-- [x] Mobil çatı kararı: **Flutter** ([Karar 001](kararlar/001-mobil-cati.md))
+```
+Belediye açık verisi                   Geliyo sunucusu (Türkiye VPS)                 Telefon (Flutter)
+────────────────────                   ─────────────────────────────                  ────────────────
+GTFS zip (Konya, Gaziantep,  ──gece──►  Go sunucusu (tek ikili, Docker)  ──HTTPS──►  Şehir paketi (bir kez iner,
+ Kocaeli, İstanbul İBB,                  • GTFS ayrıştırma, hat birleştirme            sonra yalnızca değişince)
+ İzmir metro/tramvay/İZBAN,              • Durak/hat/sefer saatleri                    • Yakındaki duraklar, arama:
+ ESHOT GTFS, topluluk şehirleri)         • RAPTOR rota planlayıcı                        internetsiz, telefonda
+                                         • Canlı veri önbelleği                       • Durak ekranı: varışlar
+ESHOT canlı API'leri (İzmir)  ──anlık──► • Hayalet araç filtresi (GPS > 5 dk)        • Hat ekranı: güzergâh, yön,
+ araç konumu, durağa yaklaşan            • Yer arama (OSM Nominatim aracılığı)          canlı otobüsler
+                                         • Sorun bildirimleri, anonim sayaçlar        • Rota: konumdan yere/durağa
+OpenStreetMap Nominatim       ◄─arama──  Caddy (otomatik HTTPS)                      • Harita: OpenFreeMap karoları
+```
 
-**Çıkış kriteri:** En az 1 şehirde geçerli GTFS ve çalışan canlı veri doğrulanmış olmalı.
+### 1.2 Sunucu (`server/`)
 
----
-
-## Faz 1: MVP, İzmir (6-8 hafta)
-
-> **Durum (26 Kasım 2026):** Faz 1'in büyük kısmı tamamlandı. Aşağıda ✅ olanlar gerçek veriyle test edildi.
-
-**Neden İzmir?** Metro, tramvay ve otobüs GTFS'i var. **Anahtarsız canlı otobüs konumu ve durağa yaklaşan araç API'si** var. Türkiye'deki en iyi açık veri seti.
-
-### Backend
-- [x] Ingest servisi: `feeds.yaml` okuyucu, gece çekimi, hash kontrolü, doğrulama
-- [x] İzmir adaptörü: koordinat düzeltmesi (`KoorX`↔`KoorY`, virgül→nokta), hat/durak ID eşleme
-- [ ] **RT köprüsü:** İzmir JSON → GTFS-Realtime `VehiclePositions` (canlı veri şimdilik kendi API'mizden sunuluyor; GTFS-RT çıktısı MOTIS gecikme entegrasyonu için gerekli)
-- [x] **Dahili rota planlayıcı (RAPTOR)**: 16 şehirde ek kurulum olmadan A'dan B'ye, 3 aktarmaya kadar, sorgu ~25-110 ms. İzmir'de otobüs (güncel kalkış + GTFS süreleri) + metro + tramvay + İZBAN aktarmalı
-- [ ] (Opsiyonel) MOTIS: gerçek sokak ağıyla yürüme mesafesi ve canlı gecikmeli rota için (`deploy/motis/prepare.sh`)
-- [x] API: `/nearby`, `/stop/{id}/departures`, `/route/{id}`, `/plan`, `/live/route/{id}` (SSE)
-- [ ] Gözlemlenebilirlik: feed tazeliği, API gecikmesi, hata oranı panosu
-
-### Mobil uygulama
-- [x] Harita (MapLibre + OSM vektör karo) ve yakındaki duraklar
-- [x] Durak ekranı: planlı + canlı varışlar, "canlı" ve "planlı" etiketleri net ayrılmış
-- [x] Hat ekranı: güzergâh ve haritada canlı otobüsler
-- [x] A→B rota planlama arayüzü ve sunucu istemcisi (MOTIS kurulunca açılır)
-- [x] Favoriler (durak, hat, ev/iş) cihazda saklanır, hesap gerekmez
-- [ ] Türkçe + İngilizce (şu an yalnızca Türkçe)
-- [x] Karanlık mod
-- [x] "Veri kaynakları ve lisanslar" ekranı
-
-### Kalite kapısı
-- [ ] Soğuk açılış < 1 sn, harita 60 fps (Moto G / Redmi sınıfı cihazda)
-- [ ] Rota p95 < 800 ms
-- [ ] 20 kişilik kapalı beta (İzmir), sonra Play Store "açık test"
-
-**Çıkış kriteri:** 500 aktif kullanıcı, Play Store puanı ≥ 4.5, çökme oranı < %0.5.
-
----
-
-## Bulunan veri sorunları ve çözümleri
-
-- **Hayalet araçlar:** ESHOT canlı API'si GPS'i saatlerdir güncellenmeyen araçları da "yaklaşıyor" diye gönderiyor (öğlen bir durakta gece 02:13'ten kalma gece otobüsleri). Geliyo GPS'i 5 dakikadan eski kayıtları gizliyor. Bu, Moovit'e göre somut bir doğruluk avantajı.
-- **ESHOT durak sırası yok:** API hat-durak ilişkisi vermiyor. ESHOT GTFS'i TR IP'den inince hat ekranındaki "Duraklar" sekmesi dolacak.
-- **İzmir Metro M1 iki ayrı hat olarak yayınlanıyor:** Sunucu aynı numaralı yönleri tek hatta birleştiriyor.
-
-## Faz 2: Çok şehir ve İstanbul (8-10 hafta)
-
-- [x] **Konya** ve **Gaziantep** (hazır GTFS, eklemesi en kolay şehirler)
-- [ ] **İstanbul:**
-  - [ ] İBB GTFS ingest (TR VPS üzerinden)
-  - [ ] İETT SOAP adaptörü: hat, durak, planlı sefer, **filo konumu → GTFS-RT**
-  - [ ] Metro, Metrobüs, Marmaray, Şehir Hatları, Marmaray-İETT aktarma
-  - [ ] Ölçek testi: İstanbul ~ 800+ hat, MOTIS RAM ve yanıt süresi ölçülecek
-- [x] Şehir seçimi ve otomatik şehir algılama: konumdan şehir bulunur, desteklenmeyen şehirde hiçbir veri indirilmez, telefonda yalnızca seçili şehrin paketi tutulur, seyahatte "şehri değiştir" önerisi
-- [x] **Çevrimdışı şehir paketleri:** JSON + ETag (İzmir 400 KB gzip). Yakındaki duraklar ve arama internetsiz çalışır.
-- [x] Servis duyuruları: İzmir (İETT duyuru servisi İstanbul ile gelecek)
-- [ ] Bildirim: "Favori hattında aksama var"
-
-**Çıkış kriteri:** 5 şehir, 10.000 aktif kullanıcı.
-
----
-
-## Faz 3: Verisi olmayan şehirler (sürekli)
-
-Ankara, Bursa, Antalya, Kocaeli, Kayseri ve diğerleri.
-
-- [ ] **Belediye görüşmeleri:** "GTFS yayınlarsanız ücretsiz, reklamsız uygulamanızda gösteririz." Ücretsiz GTFS danışmanlığı teklif edilir.
-- [x] **Kocaeli eklendi** (26.11.2026): güncel belediye GTFS'i (VPS'ten) + 2018 arşivi yedek, "eski veri" uyarısıyla
-- [x] Kocaeli 2018 → 2026 değişimi ölçüldü: duraklar %83 aynı, hatların %64'ü korunmuş ama bunların yalnızca %30'unun güzergâhı aynı (ayrıntı: VERI_KAYNAKLARI §1.1)
-- [x] **13 topluluk şehri eklendi** (Antalya, Adana, Muğla, Erzurum, Ordu, Düzce, Mardin, Çanakkale, Burdur, Osmaniye, Safranbolu, Kırklareli, Kastamonu): KentKart kaynaklı, Kasım 2026 tarifesi, "topluluk verisi" etiketiyle, `HIBRO_COMMUNITY=on`
-- [ ] **Yayından önce:** `kk-gtfs` veri lisansını ve KentKart/belediye iznini netleştir; olmazsa bu şehirleri kapat
-- [x] İzmir otobüs hatlarına durak sırası (ESHOT GTFS) ve İZBAN eklendi
-- [ ] İstanbul İETT GTFS (`data.ibb.gov.tr/dataset/iett-gtfs-verisi`) VPS'ten çekilip eklenecek
-- [ ] Şehirlerarası: Flixbus Türkiye ve Türkiye demiryolları GTFS'leri rota planlayıcıya
-- [ ] **KentKart ile resmi görüşme:** 27 şehirde (Adana, Antalya, Erzurum, Ordu, Düzce...) hat, durak ve canlı araç verisi onlarda. Anlaşma olursa tek adımda 27 şehir. `kk-gtfs` yaklaşımı **yalnızca izin alındıktan sonra** kullanılır
-- [ ] **Ankara:** OSM durakları (~2.700) + EGO'nun kamuya açık hat/sefer sayfalarından GTFS üretimi. Hat ilişkileri OSM'e topluluk katkısıyla eklenir.
-- [ ] Topluluk GTFS düzenleyici: gönüllülerin hat/durak düzeltmesi yapabileceği web aracı (moderasyonlu)
-- [ ] Üretilen feed'ler Transitous ve Mobility Database'e geri katkı olarak gönderilir
-
----
-
-## Faz 2.5: Topluluk verisi (izinli, anonim) — BAŞLADI
-
-Ayrıntılı tasarım ve KVKK kontrol listesi: [VERI_TOPLAMA.md](VERI_TOPLAMA.md)
-
-**Tamamlanan (26 Kasım 2026):**
-- [x] Ana haritada yakındaki canlı otobüsler (konuma göre, 15 sn'de bir, yalnızca harita açıkken)
-- [x] İlk açılışta izin ekranı: "anonim istatistik" ve "yolculuk verisi", ikisi de varsayılan kapalı
-- [x] Ayarlar → Gizlilik ve veri ekranı (sade dille açıklama, her an kapatılabilir)
-- [x] Sorun bildirme: kalabalık, gelmedi, hayalet araç, geç/erken, yanlış durak, yanlış saat, arıza
-- [x] "Kalabalık bildirildi" etiketi (son 20 dk bildirimleri varışlarda)
-- [x] "Bu araca bindim" yolculuk modu: inilecek durak uyarısı + izinle yolculuk izi paylaşımı
-- [x] Gizlilik korumaları: baş/son 300 m kırpma, günlük rastgele kimlik, IP saklamama, otomatik silme (30 gün iz, 1 yıl bildirim)
-- [x] Sunucuda depolama (günlük JSONL), hız sınırı, token korumalı `/admin/stats`
-- [x] Aydınlatma metni ve açık rıza metni **taslakları** (`docs/legal/`)
-
-- [x] Canlı sistem boşken/çökükken İzmir duraklarında tarifeden **tahmini** saatler
-- [x] Haritada basılı tut → "Buraya nasıl giderim?" / en yakın durak
-- [x] Rota seçenekleri haritada çiziliyor (araç hat renginde, yürüyüş kesikli)
-
-**Sıradaki:**
-- [ ] Aydınlatma ve açık rıza metinlerini avukata onaylatmak; veri sorumlusunu belirlemek
-- [ ] Haftalık veri düzeltme turu: `wrong_stop`/`wrong_time` bildirimlerini işleyen düzeltme katmanı (`overrides`)
-- [ ] Hayalet araç dedektörü: "gelmedi" bildirimleri + yolculuk izleriyle hat bazlı GPS yaş eşiği
-- [ ] Yolculuk izlerinden ESHOT hat-durak sırası çıkarımı
-- [ ] Segment süreleri → öğrenen varış tahmini (hedef: belediye ETA'sından %30 daha az hata)
-- [x] İnilecek durak için gerçek sistem bildirimi (kilit ekranında da görünür)
-- [ ] Bildirim kötüye kullanımına karşı güven puanı (aynı oturumdan tekrarlı bildirimler, çelişen bildirimler)
-- [ ] Gizlilik dostu çökme raporları (self-hosted GlitchTip, izinle)
-- [ ] Play Store "Data safety" formu
-
----
-
-## Faz 4: Moovit'i geçen özellikler (Faz 2 ile paralel)
-
-| Özellik | Açıklama | Öncelik |
+| Parça | Ne yapar | Kod |
 |---|---|---|
-| **İneceğim durak alarmı** | ✅ İlk sürüm: "Bu araca bindim" modunda titreşim + ses (ekran kapalıyken Android ön plan servisi). Sıradaki: sistem bildirimi, pil dostu geofence | Yüksek |
-| **Cihazda rota (tam çevrimdışı)** | Şehir paketinde RAPTOR, internet yokken bile A→B | Yüksek |
-| **Gecikme tahmini (ML)** | Canlı konum geçmişi + kullanıcı yolculuk izlerinden durağa varış tahmini; belediyenin ETA'sından daha doğru olması hedeflenir. Veri toplama altyapısı hazır (Faz 2.5) | Yüksek |
-| **Kalabalık tahmini** | ✅ İlk sürüm: kullanıcı "kalabalık" bildirimleri varışlarda gösteriliyor. Sıradaki: Konya ElKart saatlik biniş verisi, İzmir biniş raporlarıyla tahmin | Orta |
-| **Ana ekran widget'ı** | Favori durağın sonraki 3 aracı | Yüksek |
-| **Wear OS / Apple Watch** | Sonraki araç, inme alarmı | Orta |
-| **Erişilebilirlik modu** | Asansör/rampa bilgisi, sesli yönlendirme | Orta |
-| **Ücret hesaplama** | `fare_rules` (Konya'da hazır), aktarma indirimi | Orta |
-| **Bisiklet/scooter** | Bisim (İzmir), İsbike (İstanbul) GBFS veya API | Düşük |
-| **Kart bakiyesi** | İzmirimKart, İstanbulkart (resmi entegrasyon gerekir) | Düşük, izne bağlı |
+| Şehir kayıt defteri | Şehirleri ilk istekte yükler (aynı anda en fazla 3), kullanılmayan bellek işletim sistemine iade edilir | `internal/city` |
+| GTFS okuyucu | Zip'i akışla okur, yönleri birleştirir (ör. İzmir M1), takvimi bitmiş veriyi "eski veri" diye işaretler | `internal/gtfs` |
+| İzmir adaptörü | ESHOT canlı varış + araç konumu, 5 dk'dan eski GPS'i atar (hayalet araç), ESHOT boşsa tarifeden **tahmini** saat | `internal/izmir` |
+| Rota planlayıcı | Dahili RAPTOR: 3 aktarma, 4 saatlik ufuk, yürüme bağlantıları, baskın olmayan seçenekler. Sorgu ~25-110 ms | `internal/raptor` |
+| Yer arama | "Kocaeli Üniversitesi", "Kefken" gibi aramaları şehrin sınırı içinde OSM Nominatim'e sorar. Saniyede en fazla 1 istek, 7 gün önbellek, kullanıcının IP'si dışarı gitmez | `internal/geocode` |
+| Önbellek | Süreli önbellek + "eskiyi göster, arkada yenile" (ESHOT yavaşken bile hızlı yanıt), aynı anahtara tek istek | `internal/cache` |
+| Veri toplama | Sorun bildirimleri (1 yıl), anonim sayaçlar (beyaz liste), hız sınırı (IP diske yazılmaz) | `internal/collect` |
+| API | `/v1/cities`, `/pack` (ETag + gzip), `/stops/{id}/arrivals`, `/lines/{id}`, `/vehicles`, `/vehicles/nearby`, `/plan`, `/places`, `/reports`, `/telemetry`, `/gizlilik`, `/admin/stats` | `internal/api` |
+
+**Kurulum:** `deploy/install.sh` (tek komut: Docker, Caddy, HTTPS, güvenlik duvarı). **Güncelleme:** `cd /opt/hibro && ./deploy/update.sh`. **Kontrol:** `./deploy/smoke.sh`.
+
+### 1.3 Uygulama (`app/`)
+
+- **Şehir:** Konumdan otomatik bulunur; yalnızca o şehrin paketi iner (İzmir ~400 KB gzip). Paket değişmediyse sunucu 304 döner, veri inmez.
+- **Yakındaki duraklar:** Konum biliniyorsa **her zaman konumuna göre** hesaplanır; haritayı kaydırmak/uzaklaştırmak listeyi değiştirmez. Konum yoksa harita merkezine göre.
+- **Yakındaki otobüsler:** Canlı veri olan şehirde (şu an İzmir) konumunun çevresindeki araçlar 15 sn'de bir; uygulama arka plandayken veya harita sekmesi kapalıyken istek atılmaz.
+- **Arama:** Duraklar ve hatlar telefonda anında; 3+ harften sonra **yerler/adresler** sunucudan. Bir yere dokununca konumundan oraya rota açılır.
+- **Hat ekranı:** Haritada güzergâh, **başlangıçta yeşil ok**, **varışta damalı bayrak**, hat boyunca yön okları; üstte "kalkış → varış" satırı.
+- **Rota:** Konumdan seçilen yere/durağa; seçenekler haritada (araç hat renginde, yürüyüş kesikli).
+- **Sorun bildir:** Durak ve hat ekranlarında. Tür + not; konum ve kimlik gönderilmez.
+- **Tema:** Açık/koyu/sistem; geçiş anında (animasyonsuz), harita yeniden yüklenmez, yalnızca stili değişir.
+- **Sunucu adresi** derlemede sabittir (`--dart-define=HIBRO_API=...`), kullanıcı görmez ve değiştiremez.
+
+### 1.4 Canlı otobüs neden her şehirde yok?
+
+Belediyelerin çoğu **araç konumunu açık veri olarak yayınlamıyor**. Şu an anahtarsız canlı araç verisi veren tek kaynak **İzmir ESHOT**. Diğer şehirlerde süreler **sefer tarifesinden** gelir ve uygulama bunu açıkça söyler ("… belediyesi anlık araç konumu paylaşmıyor"). İstanbul İETT canlı verisi SOAP servisinde var (adaptör sırada). KentKart kullanan 27 şehirde veri KentKart'ta; resmi izin gerekir.
+
+ESHOT'un canlı servisi zaman zaman boş döner; bu durumda durak ekranında "tahmini" saatler gösterilir, haritada otobüs görünmez.
 
 ---
 
-## Faz 5: Sürdürülebilirlik (reklamsız gelir)
+## 2. Neler yapıldı? ✅
 
-Reklam **asla** yok. Gelir modeli:
+### Veri ve şehirler
+- [x] Türkiye açık veri envanteri (`docs/VERI_KAYNAKLARI.md`, `data/feeds.yaml`)
+- [x] **İzmir:** ESHOT canlı varış + araç konumu, ESHOT GTFS (durak sırası), Metro, Tramvay, İZBAN
+- [x] **İstanbul:** İBB GTFS (TR IP'den, VPS'te çalışıyor: 7.008 durak, 498 hat)
+- [x] **Konya, Gaziantep** (belediye CKAN GTFS), **Kocaeli** (belediye → topluluk 2026 → 2018 arşivi yedek zinciri)
+- [x] **13 topluluk şehri** (Antalya, Adana, Muğla, Erzurum, Ordu, Düzce, Mardin, Çanakkale, Burdur, Osmaniye, Safranbolu, Kırklareli, Kastamonu), "topluluk verisi" etiketiyle
+- [x] Eski veri uyarısı (kaynak bazında: yalnızca eski olan kaynağın durakları)
 
-1. **Bağış / destekçi üyeliği:** Tüm özellikler herkese ücretsiz kalır. Destekçiler isim rozeti, tema ve erken erişim alır. Ücretli duvar yoktur.
-2. **B2B / belediye:** GTFS üretim ve doğrulama hizmeti, yolcu akışı analizi (anonim, toplu veri). Belediyelerin GTFS yayınlamasını da hızlandırır.
-3. **Açık API (ücretli kademe):** Geliştiricilere birleşik Türkiye GTFS + GTFS-RT erişimi
-4. **Hibe ve fonlar:** NLnet, TÜBİTAK, AB açık veri ve ulaşım fonları
+### Sunucu
+- [x] Go sunucu, Docker + Caddy, tek komut kurulum, otomatik HTTPS (`api.geliyo.site`)
+- [x] Dahili RAPTOR rota planlayıcı (MOTIS isteğe bağlı)
+- [x] Hayalet araç filtresi, ESHOT boşken tahmini saat
+- [x] 100 eş zamanlı kullanıcı yük testi (2 çekirdek): kendi uçlarımız ms seviyesinde; ESHOT darboğazı "eskiyi göster, arkada yenile" ile çözüldü
+- [x] Bellek optimizasyonu (tembel şehir yükleme, eş zamanlılık sınırı), sabit paket ETag'i (her gün yeniden indirme yok)
+- [x] **Yer/adres arama** (`/places`, OSM Nominatim aracılığıyla) — 0.5.0
+- [x] **Sorun bildir düzeltmesi:** veri klasörü izinleri kurulum/güncelleme betiğinde düzeltiliyor (önceden "kaydedilemedi" hatası) — 0.5.0
 
-Hedef maliyet (Faz 2 sonu): 2 VPS (TR ingest + API/MOTIS), CDN. Aylık ~ 50-150 $.
+### Uygulama
+- [x] Harita (MapLibre + OpenFreeMap), yakındaki duraklar ve otobüsler, durak/hat ekranları
+- [x] Çevrimdışı şehir paketi, internetsiz arama
+- [x] Rota planlama, haritada çizim; haritada basılı tut → "Buraya nasıl giderim?"
+- [x] Favoriler (telefonda), karanlık mod, veri tasarrufu modu
+- [x] İzin ekranı (anonim istatistik, varsayılan kapalı), Gizlilik ve veri ekranı
+- [x] Sorun bildirme (kalabalık, gelmedi, hayalet araç, geç/erken, yanlış durak/saat, arıza); "kalabalık bildirildi" etiketi
+- [x] Uygulama adı **Geliyo**, paket `com.geliyo.app`, imzalı release APK
+- [x] **0.5.0 geri bildirim düzeltmeleri:**
+  - [x] Tema geçişi takılmadan (harita yeniden oluşturulmuyor, tema animasyonu kapalı)
+  - [x] Sunucu adresi ayarlardan kaldırıldı (görünmez, değiştirilemez)
+  - [x] Aramada yerler/adresler → dokununca konumdan rota
+  - [x] Yakındaki duraklar konuma göre sabit (harita zoom'u etkilemiyor); izin önceden verildiyse konum açılışta otomatik
+  - [x] Hat yönleri: başlangıç oku, varış bayrağı, yön okları, "kalkış → varış" satırı
+  - [x] Canlı verisi olmayan şehirde açıklama notu
+  - [x] "Bu araca bindim" modu, bildirim paketi, ön plan servisi ve arka plan konum izinleri **kaldırıldı** (uygulama küçüldü, Play beyanı gerekmiyor)
+  - [x] Gizlilik metinleri güncellendi (yolculuk verisi yok, yer araması eklendi)
 
 ---
 
-## Metrikler (her sürümde ölçülür)
+## 3. Neler yapılmalı? 🔜
+
+### Hemen (yayın öncesi, 1-2 hafta)
+- [ ] VPS'te `./deploy/update.sh` çalıştır (yer arama + sorun bildir düzeltmesi canlıya çıkar)
+- [ ] Güvenlik: root şifresini değiştir, SSH anahtarına geç, `HIBRO_ADMIN_TOKEN`'ı yenile
+- [ ] Sunucu yedeği (`deploy/data/collect` şifreli, haftalık)
+- [ ] 10-20 kişilik kapalı test (Play Console dahili test); en az 12 test kullanıcısı × 14 gün kuralı
+- [ ] Veri sorumlusunu belirle; aydınlatma ve açık rıza metinlerini avukata onaylat
+- [ ] Topluluk şehirleri (`kk-gtfs`) lisans/izin kontrolü; izin yoksa `HIBRO_COMMUNITY=off`
+- [ ] Play Store "Data safety" formu (`docs/MAGAZA.md` §4)
+
+### Kısa vade (1-2 ay)
+- [ ] **İstanbul canlı otobüs:** İETT SOAP filo konumu adaptörü
+- [ ] Rotada ara durak seçme ("nereden" de seçilebilsin, şu an hep konumdan)
+- [ ] Aramada son aranan yerler (telefonda)
+- [ ] Bildirim düzeltme katmanı (`overrides`): `wrong_stop`/`wrong_time` bildirimleri haftalık işlenir
+- [ ] Hayalet araç dedektörü: aynı araç için tekrarlı "gelmedi" bildirimi → gizle
+- [ ] Bildirim kötüye kullanımına karşı güven puanı
+- [ ] Gözlemlenebilirlik: kaynak tazeliği, API gecikmesi, hata oranı panosu
+- [ ] Ana ekran widget'ı: favori durağın sonraki 3 aracı
+- [ ] İngilizce dil desteği
+
+### Orta vade (3-6 ay)
+- [ ] **Öğrenen varış tahmini:** sunucu ESHOT araç konumlarını zaman serisi olarak kaydeder → durak arası gerçek süreler → belediye ETA'sından %30 daha az hata hedefi (kullanıcıdan GPS izi gerekmez)
+- [ ] Cihazda rota (tam çevrimdışı RAPTOR)
+- [ ] MOTIS ile gerçek sokak ağında yürüme süresi
+- [ ] Ücret hesaplama (Konya `fare_rules` hazır), aktarma indirimi
+- [ ] Erişilebilirlik: TalkBack/VoiceOver, engelli erişimli araç filtresi
+- [ ] iOS sürümü (Apple Developer hesabı + Mac gerekir)
+
+### Uzun vade
+- [ ] **KentKart ile resmi görüşme:** 27 şehirde canlı araç verisi tek anlaşmayla
+- [ ] Belediye görüşmeleri: "GTFS yayınlarsanız reklamsız uygulamada ücretsiz gösteririz"
+- [ ] **Ankara:** OSM durakları + EGO'nun açık sayfalarından GTFS üretimi
+- [ ] Şehirlerarası: Flixbus Türkiye, TCDD
+- [ ] Bisiklet/scooter (Bisim, İsbike GBFS)
+- [ ] Topluluk GTFS düzenleyici (moderasyonlu)
+
+---
+
+## Sürdürülebilirlik (reklamsız gelir)
+
+Reklam **asla** yok. Gelir: bağış/destekçi rozeti (ücretli duvar yok), belediyelere GTFS üretim/doğrulama hizmeti, geliştiricilere birleşik Türkiye GTFS API'si, hibe ve fonlar (NLnet, TÜBİTAK, AB). Şu anki maliyet: VPS ~3 $/ay + alan adı.
+
+## Metrikler
 
 | Metrik | Hedef |
 |---|---|
-| Harita akıcılığı | 60 fps (orta segment) |
-| Soğuk açılış (orta segment Android) | < 1.0 sn |
-| Yakındaki duraklar (yerel) | < 100 ms |
+| Soğuk açılış (orta segment Android) | < 1 sn |
+| Yakındaki duraklar (telefonda) | < 100 ms |
 | Rota planlama p95 (sunucu) | < 800 ms |
 | Canlı veri tazeliği | ≤ 15 sn |
-| Feed tazeliği (statik) | ≤ 24 saat |
 | Çökme oranı | < %0.5 |
-| 3. taraf izleyici sayısı | **0** |
-| Reklam sayısı | **0** |
-
----
+| Reklam / 3. taraf izleyici | **0 / 0** |
 
 ## Riskler
 
-| Risk | Olasılık | Etki | Önlem |
-|---|---|---|---|
-| Belediye API'leri değişir veya kapanır | Yüksek | Yüksek | Adaptör katmanı, sağlık kontrolü, planlı saatlere düşme |
-| Geo-blok (İBB, ESHOT) | Kesin | Orta | TR VPS, Transitland arşivi yedek |
-| Lisans ticari kullanıma izin vermez | Orta | Yüksek | Hukuki kontrol (Faz 0), gerekirse tamamen ücretsiz model |
-| Verisi olmayan büyük şehirler (Ankara) | Kesin | Yüksek | Faz 3 stratejisi, belediye görüşmesi |
-| Kullanıcı kazanımı (Moovit'in ağ etkisi) | Yüksek | Yüksek | "Reklamsız" mesajı, hız, yerel topluluklar, üniversiteler |
-| İstanbul ölçeğinde performans | Orta | Orta | MOTIS ölçek testi, yatay ölçek, cache |
-| Konum verisi nedeniyle KVKK riski | Orta | Yüksek | Varsayılan kapalı + açık rıza, kırpma, kimliksizlik, 30 gün silme, avukat onayı |
-| Sahte/troll bildirimler | Orta | Orta | Hız sınırı, beyaz liste, güven puanı (sıradaki), tek bildirimle veri değiştirmeme |
-
----
-
-## Hemen sonraki adımlar
-
-1. Repoyu **gizli** yap (GitHub → Settings → Danger Zone → Change visibility)
-2. Türkiye VPS'i kirala ve [deploy/README.md](../deploy/README.md) ile kur (`HIBRO_ADMIN_TOKEN` ayarla)
-3. APK'yı 5-10 kişilik kapalı betaya ver, "Bu araca bindim" ile ilk yolculuk verisini topla
-4. Aydınlatma/açık rıza metinlerini avukata onaylat
-5. İstanbul (İBB GTFS + İETT canlı) ve MOTIS rota planlayıcıyı VPS'te aç
+| Risk | Önlem |
+|---|---|
+| Belediye API'leri değişir/kapanır | Adaptör katmanı, tarifeye düşme, eski veri uyarısı |
+| Geo-blok (İBB, ESHOT, Kocaeli) | Türkiye VPS (çözüldü) |
+| Lisans (topluluk verisi) | Yayından önce izin; yoksa şehri kapat |
+| Nominatim kullanım kuralları (1 istek/sn) | Sunucuda hız sınırı + 7 gün önbellek; büyürsek kendi Nominatim/Photon kurulumu |
+| Kullanıcı kazanımı | "Reklamsız" mesajı, hız, üniversite toplulukları |
+| KVKK | Varsayılan kapalı, kimliksiz, konum kaydı yok, avukat onayı |

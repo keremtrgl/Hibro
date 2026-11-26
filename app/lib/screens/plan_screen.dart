@@ -211,7 +211,6 @@ class _PlanScreenState extends State<PlanScreen> {
         SizedBox(
           height: MediaQuery.of(context).size.height * 0.32,
           child: MapLibreMap(
-            key: ValueKey(dark),
             styleString: dark ? mapStyleDark : mapStyleLight,
             initialCameraPosition: CameraPosition(target: LatLng(widget.destination.lat, widget.destination.lon), zoom: 12),
             onMapCreated: (c) => _map = c,

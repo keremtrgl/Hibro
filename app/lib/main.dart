@@ -10,7 +10,6 @@ import 'screens/home_screen.dart';
 import 'screens/settings_screen.dart';
 import 'state/app_state.dart';
 import 'state/scope.dart';
-import 'util/notify.dart';
 import 'widgets/city_sheet.dart';
 import 'widgets/consent_sheet.dart';
 
@@ -23,7 +22,6 @@ Future<void> main() async {
       await setMaximumAmbientCacheSize(150 * 1024 * 1024);
     } catch (_) {}
   }
-  await Notifier.init();
   final prefs = await SharedPreferences.getInstance();
   final state = AppState(prefs);
   runApp(AppScope(state: state, child: const GeliyoApp()));
@@ -50,6 +48,8 @@ class GeliyoApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: _theme(Brightness.light),
       darkTheme: _theme(Brightness.dark),
+      // Instant theme switch: animating the whole tree (with maps) stutters.
+      themeAnimationDuration: Duration.zero,
       themeMode: switch (s.themeMode) {
         AppThemeMode.light => ThemeMode.light,
         AppThemeMode.dark => ThemeMode.dark,

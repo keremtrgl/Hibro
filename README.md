@@ -8,7 +8,7 @@
 
 ![Geliyo ekranları: harita, canlı varışlar, canlı araçlı hat, duyurular, ayarlar](docs/img/ekranlar.png)
 
-![Konumuma göre duraklar, sorun bildirme, Bu araca bindim modu, inilecek durak seçimi, gizlilik ayarları](docs/img/veri-ozellikleri.png)
+![Konumuma göre duraklar, sorun bildirme, gizlilik ayarları](docs/img/veri-ozellikleri.png)
 
 **Rota planlama:** Kendi RAPTOR planlayıcımız 16 şehirde çalışıyor; İzmir'de otobüs + metro + tramvay + İZBAN aktarmalı.
 

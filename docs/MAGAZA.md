@@ -51,7 +51,8 @@ Her yeni sürümde `pubspec.yaml` içindeki `version: 0.4.0+4` değerinin `+` so
 > • Canlı otobüs takibi (İzmir): durağa kaç dakikada geleceğini, kaç durak kaldığını, plakayı ve engelli erişimini gör.
 > • Yakındaki duraklar ve otobüsler, internet olmadan bile arama.
 > • A'dan B'ye rota: otobüs, metro, tramvay ve banliyö aktarmalı.
-> • "Bu araca bindim" modu: ineceğin durağa yaklaşınca titreşimle haber verir.
+> • Yer ve adres arama: "Kocaeli Üniversitesi" yaz, konumundan nasıl gidileceğini gör.
+> • Hat yönleri net: haritada başlangıç oku, varış bayrağı ve yön okları.
 > • Hayalet otobüs filtresi: belediye sisteminde saatlerdir sinyal vermeyen araçları göstermez.
 > • Gizlilik önce: hesap yok, izleyici yok, favorilerin sadece telefonunda.
 > • Az veri kullanır: şehir verisi bir kez iner, sonra sadece değişenler.
@@ -80,8 +81,8 @@ Toplanan veri türleri:
 
 | Tür | Toplanıyor | Zorunlu mu | Amaç |
 |---|---|---|---|
-| Konum → Kesin konum | Evet (yalnızca "Bu araca bindim" + izin) | İsteğe bağlı | Uygulama işlevi, analiz (varış tahminleri) |
-| Konum → Yaklaşık konum | Evet (yakındaki otobüs/rota isteği, kaydedilmez) | İsteğe bağlı | Uygulama işlevi |
+| Konum → Kesin/yaklaşık konum | İşleniyor ama **kaydedilmiyor** (yakındaki otobüs/rota isteği). Play'de "geçici işleme" (ephemeral) olarak işaretlenir | İsteğe bağlı | Uygulama işlevi |
+| Uygulama etkinliği → Uygulama içi arama geçmişi | Yer araması metni OSM Nominatim'e iletilir, kimliksiz, 7 gün önbellek | Zorunlu değil | Uygulama işlevi |
 | Uygulama etkinliği → Uygulama etkileşimleri | Evet (anonim sayaçlar, izinle) | İsteğe bağlı | Analiz |
 | Uygulama etkinliği → Kullanıcı tarafından oluşturulan içerik | Evet (sorun bildirimi notu) | İsteğe bağlı | Uygulama işlevi |
 | Kişisel bilgiler, finans, kişiler, fotoğraf, mesaj, cihaz kimliği | Hayır | | |
@@ -94,10 +95,10 @@ Toplanan veri türleri:
 
 ## 6. Arka plan konum beyanı
 
-"Bu araca bindim" modu ekran kapalıyken çalışmak için **ön plan servisi** (bildirimle) kullanıyor; arka plan konum izni (`ACCESS_BACKGROUND_LOCATION`) istemiyor. Play Console "Ön plan hizmeti" beyanında tür olarak **location**, gerekçe olarak "kullanıcının başlattığı yolculukta inilecek durağı uyarmak" yazılmalı ve kısa bir video istenebilir.
+Gerekmiyor. "Bu araca bindim" modu 0.5.0'da kaldırıldı; uygulama yalnızca açıkken konum kullanır. Ön plan servisi, bildirim ve arka plan konum izni yok.
 
 ## 7. App Store (iOS)
 
 - Apple Developer hesabı (yıllık 99 $), Mac ve Xcode gerekir.
-- `ios/Runner/Info.plist` konum açıklaması ve arka plan konum modu hazır.
+- `ios/Runner/Info.plist` konum açıklaması hazır (arka plan konum modu yok).
 - App Privacy formu: yukarıdaki tabloyla aynı.

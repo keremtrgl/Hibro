@@ -10,9 +10,9 @@ Belediye verisinin bilinen sorunları:
 
 | Sorun | Örnek | Topluluk verisiyle çözüm |
 |---|---|---|
-| Hayalet araçlar | ESHOT, GPS'i saatlerdir susan araçları "3 dk" diye gösteriyor | "Araç gelmedi" bildirimleri + yolculuk izleri |
-| Yanlış varış süresi | Belediye ETA'sı trafiği hesaba katmıyor | Yolculuk izlerinden gerçek segment süreleri, öğrenen tahmin |
-| Eksik durak sırası | ESHOT API'si hat-durak ilişkisi vermiyor | Yolculuk izlerinin durak koordinatlarıyla eşleştirilmesi |
+| Hayalet araçlar | ESHOT, GPS'i saatlerdir susan araçları "3 dk" diye gösteriyor | GPS yaşı filtresi (5 dk) + "Araç gelmedi" bildirimleri |
+| Yanlış varış süresi | Belediye ETA'sı trafiği hesaba katmıyor | Canlı araç konumlarının sunucuda zaman serisi olarak izlenmesi (kullanıcı verisi gerekmez, Faz 4) |
+| Eksik durak sırası | ESHOT API'si hat-durak ilişkisi vermiyor | ESHOT GTFS ile eşleştirme (yapıldı) + "durak yanlış" bildirimleri |
 | Yanlış durak konumu/adı | Duraklar haritada yanlış yerde | "Durak yanlış" bildirimleri |
 | Kalabalık bilgisi yok | Hiçbir belediye yayınlamıyor | "Kalabalık" bildirimleri (son 20 dk varışlarda gösterilir) |
 | Hangi özellik/şehir önemli | Bilinmiyor | Anonim kullanım sayaçları, "sonuçsuz arama" sayısı |
@@ -23,7 +23,9 @@ Belediye verisinin bilinen sorunları:
 |---|---|---|---|---|
 | **Sorun bildirimi** | Kullanıcı "Sorun bildir"e basınca | Tür, durak ID, hat ID, plaka (varsa), not (≤280 karakter), uygulama sürümü, sunucu saati | Konum, IP, cihaz kimliği | 365 gün |
 | **Anonim kullanım sayacı** | Yalnızca izin varsa, 60 sn'de bir toplu | `şehir/olay → sayı` (ör. `izmir/screen_stop: 3`). Olaylar sunucuda beyaz listeyle sınırlı | Kimlik, oturum, konum, zaman damgası | Günlük toplam olarak süresiz |
-| **Yolculuk izi** | Yalnızca "Bu araca bindim" modunda ve izin varsa | Hat, yön, GPS noktaları (zaman, enlem, boylam, doğruluk, hız), günlük değişen rastgele oturum kimliği | Yolculuğun ilk/son 300 m'si, IP, cihaz kimliği | Ham veri 30 gün, sonra yalnızca toplu istatistik |
+| **Yer araması** | Kullanıcı arama kutusuna en az 3 harf yazınca | Arama metni + şehir; sunucu bunu OSM Nominatim'e iletir (saniyede en fazla 1 istek) | Konum, IP (Nominatim sunucumuzun IP'sini görür), kimlik | Sonuç önbelleği 7 gün |
+
+> **Kaldırılan:** "Bu araca bindim" yolculuk izi toplama 0.5.0'da kaldırıldı (kullanıcı geri bildirimi: gereksiz). Sunucudaki `/trips` ucu eski sürümler için duruyor; yeni sürüm hiçbir GPS izi göndermez.
 
 Toplanmayanlar: isim, telefon, e-posta, reklam kimliği, cihaz modeli, kişi listesi, arka planda sürekli konum.
 
@@ -33,10 +35,8 @@ Toplanmayanlar: isim, telefon, e-posta, reklam kimliği, cihaz modeli, kişi lis
 |---|---|
 | Varsayılan kapalı, ilk açılışta açık seçim | `app/lib/widgets/consent_sheet.dart` |
 | İzin her an geri alınabilir | `app/lib/screens/privacy_screen.dart` |
-| Baş/son 300 m kırpma (önce telefonda, sonra sunucuda tekrar) | `app/lib/screens/ride_screen.dart` `trimTrip`, `server/internal/collect/trips.go` `trimEnds` |
-| Günlük değişen rastgele oturum kimliği | `AppState.dailySession` |
-| Koordinatlar ~1 m'ye yuvarlanır, doğruluğu kötü (>80 m) ve mantıksız hızlı noktalar atılır | `TripUpload.Clean` |
-| Şehir sınırı dışındaki noktalar atılır | `TripUpload.Clean` + `City.Bounds` |
+| Yer araması sunucu üzerinden: kullanıcının IP'si üçüncü tarafa gitmez, istekler önbelleklenir | `server/internal/geocode` |
+| Sunucu adresi uygulamaya gömülü, kullanıcı görmez/değiştiremez | `AppState` (`HIBRO_API` derleme değişkeni) |
 | Sayaçlarda beyaz liste: tanımsız olay kaydedilmez | `collect.TelemetryEvents` |
 | Bildirimlerde bilinmeyen alanlar reddedilir (ör. e-posta alanı eklenirse 400) | `DisallowUnknownFields` |
 | IP adresi diske yazılmaz; hız sınırı yalnızca bellekte, tuzlu özetle | `collect.Limiter` |
@@ -53,9 +53,7 @@ Telefon                                   Sunucu (Türkiye)                     
 Sorun bildir ──────────────► POST /reports ──► collected/reports/GÜN.jsonl ──► veri düzeltme listesi
                                           └──► bellek: son 2 saat ─────────────► "Kalabalık bildirildi"
 Sayaçlar (izinle) ─────────► POST /telemetry ─► collected/telemetry/GÜN.json ──► öncelik kararları
-Bindim modu (izinle)
-  └─ telefonda kırp ───────► POST /trips ─────► collected/trips/GÜN.jsonl ───► (Faz 4) segment süreleri,
-                                               (30 gün sonra silinir)            öğrenen varış tahmini
+Yer araması ───────────────► GET /places ────► önbellek (7 gün) ──► OSM Nominatim (sunucu IP'siyle)
 ```
 
 ## 5. Toplanan veriye bakmak
@@ -65,16 +63,16 @@ Bindim modu (izinle)
 curl -H "Authorization: Bearer $HIBRO_ADMIN_TOKEN" https://api.geliyo.site/admin/stats?days=7
 ```
 
-Dönen özet: bildirim türleri, en çok bildirim alan hat ve duraklar, son notlar, yolculuk sayısı, hat bazında yolculuk, günlük sayaçlar.
+Dönen özet: bildirim türleri, en çok bildirim alan hat ve duraklar, son notlar, günlük sayaçlar.
 
 Ham dosyalar: VPS'te `deploy/data/collect/` (JSONL, satır başına bir kayıt). Yedeklenirken de **şifreli** saklanmalı.
 
 ## 6. Veriyi uygulamayı geliştirmek için nasıl kullanacağız?
 
 1. **Haftalık veri düzeltme turu:** `wrong_stop` / `wrong_time` bildirimleri → belediyeye iletilir, kendi düzeltme katmanımıza (`overrides`) eklenir.
-2. **Hayalet araç dedektörü:** Bir araç için "gelmedi" bildirimi + aynı anda o hatta kimsenin binmemesi → aracı gizle, GPS yaş eşiğini hat bazında ayarla.
-3. **Öğrenen varış tahmini (Faz 4):** Yolculuk izleri → durak arası gerçek süreler (saat dilimi × gün tipi × hat) → belediye ETA'sını düzelten model. Başarı ölçütü: tahmin hatasının medyanı belediye ETA'sından en az %30 düşük.
-4. **ESHOT durak sırası:** İzlerin durak koordinatlarıyla eşleştirilmesiyle hat-durak sırası çıkarılır (GTFS gelene kadar).
+2. **Hayalet araç dedektörü:** Bir araç için birden çok "gelmedi" bildirimi → aracı gizle, GPS yaş eşiğini hat bazında ayarla.
+3. **Öğrenen varış tahmini (Faz 4):** Sunucu, belediyenin yayınladığı canlı araç konumlarını kaydeder → durak arası gerçek süreler (saat dilimi × gün tipi × hat) → belediye ETA'sını düzelten model. Kullanıcıdan GPS izi gerekmez. Başarı ölçütü: tahmin hatasının medyanı belediye ETA'sından en az %30 düşük.
+4. **ESHOT durak sırası:** ESHOT GTFS'inden alınıyor (yapıldı); bildirimlerle düzeltilir.
 5. **Ürün kararları:** "sonuçsuz arama" çok olan şehir/semt → veri önceliği; az kullanılan ekran → sadeleştirme.
 
 ## 7. KVKK kontrol listesi (yayından önce)

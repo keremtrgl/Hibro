@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show File;
-import 'dart:math' show Random;
 
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
@@ -65,7 +64,8 @@ class NearbyStop {
 }
 
 class AppState extends ChangeNotifier {
-  AppState(this.prefs) : api = GeliyoApi(prefs.getString('api') ?? defaultApiUrl) {
+  // The server address is fixed at build time (HIBRO_API); users never see or change it.
+  AppState(this.prefs) : api = GeliyoApi(defaultApiUrl) {
     cityId = prefs.getString('city') ?? 'izmir';
     themeMode = ThemeModeX.parse(prefs.getString('theme'));
     favorites = (jsonDecode(prefs.getString('favs') ?? '[]') as List)
@@ -74,12 +74,11 @@ class AppState extends ChangeNotifier {
     dataSaver = prefs.getBool('dataSaver') ?? false;
     consentAsked = prefs.getBool('consentAsked') ?? false;
     shareUsage = prefs.getBool('shareUsage') ?? false;
-    shareTrips = prefs.getBool('shareTrips') ?? false;
   }
 
   // ---- privacy choices (all off until the user turns them on) ----
 
-  late bool consentAsked, shareUsage, shareTrips;
+  late bool consentAsked, shareUsage;
 
   /// "Veri tasarrufu": slower live refresh, no automatic nearby buses.
   late bool dataSaver;
@@ -93,34 +92,17 @@ class AppState extends ChangeNotifier {
   /// Polling interval for live data, doubled in data-saver mode.
   Duration liveInterval(int seconds) => Duration(seconds: dataSaver ? seconds * 2 : seconds);
 
-  Future<void> setConsent({bool? usage, bool? trips}) async {
+  Future<void> setConsent({bool? usage}) async {
     if (usage != null) {
       shareUsage = usage;
       await prefs.setBool('shareUsage', usage);
       if (!usage) _events.clear();
-    }
-    if (trips != null) {
-      shareTrips = trips;
-      await prefs.setBool('shareTrips', trips);
     }
     consentAsked = true;
     await prefs.setBool('consentAsked', true);
     notifyListeners();
   }
 
-  /// Random id that changes every day, used only to group the points of
-  /// one uploaded trip. It is never linked to the device or a person.
-  String get dailySession {
-    final today = DateTime.now().toIso8601String().substring(0, 10);
-    if (prefs.getString('sessionDay') != today) {
-      final r = Random.secure();
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-';
-      final id = List.generate(24, (_) => chars[r.nextInt(chars.length)]).join();
-      prefs.setString('sessionDay', today);
-      prefs.setString('session', id);
-    }
-    return prefs.getString('session')!;
-  }
 
   // ---- anonymous usage counters ----
 
@@ -314,13 +296,6 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  Future<void> setApiUrl(String url) async {
-    api.baseUrl = url.trim();
-    await prefs.setString('api', api.baseUrl);
-    await prefs.remove('etag_$cityId');
-    if (hasCity) await refresh();
-    await _refreshCities();
-  }
 
   Future<void> setTheme(AppThemeMode m) async {
     themeMode = m;
@@ -346,6 +321,16 @@ class AppState extends ChangeNotifier {
   List<Favorite> get cityFavorites => favorites.where((f) => f.city == cityId).toList();
 
   // ---- location ----
+
+  /// Starts location silently when permission was already granted
+  /// earlier, so "nearby" is about the user from the first frame.
+  Future<void> resumeLocationIfGranted() async {
+    if (_posSub != null) return;
+    try {
+      final p = await Geolocator.checkPermission();
+      if (p == LocationPermission.whileInUse || p == LocationPermission.always) await startLocation();
+    } catch (_) {}
+  }
 
   Future<bool> startLocation() async {
     try {

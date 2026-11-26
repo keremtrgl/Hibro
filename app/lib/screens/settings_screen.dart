@@ -62,20 +62,9 @@ class SettingsScreen extends StatelessWidget {
         ListTile(
           leading: const Icon(Icons.privacy_tip_outlined),
           title: const Text('Paylaşım tercihlerin'),
-          subtitle: Text([
-            s.shareUsage ? 'Kullanım istatistikleri: açık' : 'Kullanım istatistikleri: kapalı',
-            s.shareTrips ? 'Yolculuk verisi: açık' : 'Yolculuk verisi: kapalı',
-          ].join('\n')),
-          isThreeLine: true,
+          subtitle: Text(s.shareUsage ? 'Anonim kullanım istatistikleri: açık' : 'Anonim kullanım istatistikleri: kapalı'),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrivacyScreen())),
-        ),
-        _section(t, 'Sunucu'),
-        ListTile(
-          leading: const Icon(Icons.dns_outlined),
-          title: const Text('Geliyo sunucu adresi'),
-          subtitle: Text(s.api.baseUrl),
-          onTap: () => _editServer(context),
         ),
         _section(t, 'Veri kaynakları'),
         for (final src in s.city.sources)
@@ -110,24 +99,4 @@ class SettingsScreen extends StatelessWidget {
         child: Text(title, style: t.textTheme.labelLarge?.copyWith(color: t.colorScheme.primary)),
       );
 
-  Future<void> _editServer(BuildContext context) async {
-    final s = AppScope.read(context);
-    final c = TextEditingController(text: s.api.baseUrl);
-    final url = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Sunucu adresi'),
-        content: TextField(
-          controller: c,
-          keyboardType: TextInputType.url,
-          decoration: const InputDecoration(hintText: 'https://api.ornek.com'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Vazgeç')),
-          FilledButton(onPressed: () => Navigator.pop(context, c.text), child: const Text('Kaydet')),
-        ],
-      ),
-    );
-    if (url != null && url.trim().isNotEmpty) await s.setApiUrl(url);
-  }
 }

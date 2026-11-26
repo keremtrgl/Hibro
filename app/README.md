@@ -15,7 +15,8 @@ Reklamsız, izleyicisiz toplu taşıma uygulaması. Android, iOS ve web.
 - Rota planlama (sunucuda MOTIS kuruluysa görünür)
 - Ana haritada yakındaki canlı otobüsler
 - Sorun bildirme (kalabalık, gelmedi, yanlış durak...)
-- "Bu araca bindim": inilecek durak uyarısı, izinle anonim yolculuk verisi
+- Yer ve adres arama (OSM), dokununca konumdan rota
+- Hat haritasında başlangıç oku, varış bayrağı ve yön okları
 - İlk açılışta izin ekranı; tüm paylaşımlar varsayılan kapalı (Ayarlar → Gizlilik ve veri)
 
 ## Çalıştırma

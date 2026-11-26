@@ -144,14 +144,12 @@ class GeliyoApi {
   Future<void> telemetry(String city, Map<String, int> events) =>
       _post('/v1/telemetry', {'city': city, 'events': events}, timeout: const Duration(seconds: 10));
 
-  Future<void> uploadTrip(String city, {required String session, required String lineId, required int direction, required List<List<double>> points, String? app}) =>
-      _post('/v1/cities/${seg(city)}/trips', {
-        'session': session,
-        'lineId': lineId,
-        'direction': direction,
-        'points': points,
-        'app': ?app,
-      }, timeout: const Duration(seconds: 60));
+  /// Place / address search (universities, neighbourhoods, landmarks),
+  /// limited to the city. Goes through our server, which asks OSM.
+  Future<List<Place>> places(String city, String q) async {
+    final j = await _get('/v1/cities/${seg(city)}/places', q: {'q': q}, timeout: const Duration(seconds: 15)) as Map<String, dynamic>;
+    return [for (final p in (j['places'] as List? ?? const [])) Place.fromJson(p as Map<String, dynamic>)];
+  }
 
   Future<List<Itinerary>> plan(String city, double fLat, double fLon, double tLat, double tLon) async {
     final j = await _get('/v1/cities/${seg(city)}/plan', q: {
